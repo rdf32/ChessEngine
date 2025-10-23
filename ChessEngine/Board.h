@@ -42,6 +42,8 @@ public:
     Bitboard bishopMask(Square square) const;
     Bitboard rookMask(Square square) const;
 
+    Bitboard kingMask(Square square) const;
+
 
     // board position functions
     void startingPosition();
@@ -71,6 +73,6 @@ private:
     Bitboard knightAttacks[64];
 
     // kingAttacks[square]
-    //Bitboard kingAttacks[64];
+    Bitboard kingAttacks[64];
 
 };

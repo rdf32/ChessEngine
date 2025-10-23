@@ -53,6 +53,7 @@ Board::Board()
         knightAttacks[square] = knightMask(static_cast<Square>(square));
         
         // inititalize king attacks
+        kingAttacks[square] = kingMask(static_cast<Square>(square));
     }
     //for (int square = A1; square <= H8; square++) {
     //    std::cout << "Square: " << square << "\n";
@@ -105,6 +106,26 @@ Board::Bitboard Board::knightMask(Square square) const {
     if ((bitboard >> 15) & Board::notFile_A) { attacks |= (bitboard >> 15); }  // 1 file right (spatially)
     if ((bitboard >> 17) & Board::notFile_H) { attacks |= (bitboard >> 17); }  // 1 file left (spatially)
     if ((bitboard >> 10) & Board::notFile_HG) { attacks |= (bitboard >> 10); } // 2 files left (spatially)
+
+    return attacks;
+}
+
+Board::Bitboard Board::kingMask(Square square) const {
+
+    Bitboard bitboard = 0ULL;
+    Bitboard attacks = 0ULL;
+
+    setBit(bitboard, square);
+
+    if ((bitboard << 7) & Board::notFile_H) { attacks |= (bitboard << 7); }
+    if ((bitboard << 9) & Board::notFile_A) { attacks |= (bitboard << 9); }
+    if ((bitboard >> 7) & Board::notFile_A) { attacks |= (bitboard >> 7); }
+    if ((bitboard >> 9) & Board::notFile_H) { attacks |= (bitboard >> 9); }
+
+    if (bitboard << 8) { attacks |= (bitboard << 8); }
+    if (bitboard >> 8) { attacks |= (bitboard >> 8); }
+    if ((bitboard << 1) & Board::notFile_A) { attacks |= (bitboard << 1); }
+    if ((bitboard >> 1) & Board::notFile_H) { attacks |= (bitboard >> 1); }
 
     return attacks;
 }

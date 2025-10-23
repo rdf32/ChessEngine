@@ -25,29 +25,14 @@ int main()
     //board.printPieceboards();
     //board.printOccupancyboards();
 
-    Board::Bitboard bitboard = 0ULL;
-    //Board::Bitboard attacks = 0ULL;
-
     for (int square = Board::A1; square <= Board::H8; square++) {
         std::cout << "Square: " << square << std::endl;
         Board::Square target_square = static_cast<Board::Square>(square);
-        printBitboard(board.rookMask(target_square));
+        //printBitboard(board.rookMask(target_square));
+        //printBitboard(board.kingMask(target_square));
+        printBitboard(board.pawnMask(Board::White, target_square));
 
     }
-
-    //for (int rank = 7; rank >= 0; --rank) {
-    //    for (int file = 0; file < 8; ++file) {
-    //        int square = rank * 8 + file;
-
-    //        if (file > 0) {
-    //            Board::setBit(bitboard, static_cast<Board::Square>(square));
-    //        }
-    //    }
-    //}
-
-    //printBitboard(bitboard);
-
-
 
     return 0;
 }
