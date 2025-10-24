@@ -3,29 +3,61 @@
 #include <iostream>
 #include "Board.h"
 
-//Bit index : Square: bigger number is to the left << smaller >> right
+//Bit index : Square: bigger number left << smaller >> right
 //56 57 58 59 60 61 62 63 ->a8 to h8
 //48 49 50 51 52 53 54 55 ->a7 to h7
 //40 41 42 43 44 45 46 47 ->a6 to h6
 //32 33 34 35 36 37 38 39 ->a5 to h5
 //24 25 26 27 28 29 30 31 ->a4 to h4
 //16 17 18 19 20 21 22 23 ->a3 to h3
-//8  9 10 11 12 13 14 15  ->a2 to h2
+//8  9  10 11 12 13 14 15 ->a2 to h2
 //0  1  2  3  4  5  6  7  ->a1 to h1
 
 const char* Board::ColorNames[3] = { "White", "Black", "All" };
 const char* Board::PieceTypeNames[6] = { "Pawn", "Knight", "Bishop", "Rook", "Queen", "King" };
+const char* Board::SquareNames[64] = {
+        "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
+        "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+        "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
+        "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
+        "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
+        "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
+        "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+        "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
+    };
 
-void Board::setBit(Bitboard& bb, Square sq) {
-    bb |= (1ULL << sq);
+
+void Board::setBit(Bitboard& bitboard, Square square) {
+    bitboard |= (1ULL << square);
 }
 
-void Board::clearBit(Bitboard& bb, Square sq) {
-    bb &= ~(1ULL << sq);
+void Board::clearBit(Bitboard& bitboard, Square square) {
+    bitboard &= ~(1ULL << square);
 }
 
-bool Board::getBit(Bitboard bb, Square sq) {
-    return bb & (1ULL << sq);
+bool Board::getBit(Bitboard bitboard, Square square) {
+    return bitboard & (1ULL << square);
+}
+
+int Board::countBits(Bitboard bitboard) {
+
+    int count = 0;
+
+    while (bitboard) {
+        bitboard &= bitboard - 1;
+        count++;
+    }
+    return count;
+}
+
+int Board::getLSBIndex(Bitboard bitboard) {
+
+    if (bitboard) {
+        return countBits((bitboard & (~bitboard + 1)) - 1);
+    }
+    else {
+        return -1;
+    }
 }
 
 Board::Board()
@@ -42,24 +74,19 @@ Board::Board()
     // set the starting board position
     startingPosition();
 
-    // initialize attack tables 
-    for (int square = A1; square <= H8; square++) {
+    // initialize attack tables for leaper pieces
+    for (int square = a1; square <= h8; square++) {
 
         // initialize pawn attacks pawnAttacks[color][square]
-        pawnAttacks[White][square] = pawnMask(White, static_cast<Square>(square));
-        pawnAttacks[Black][square] = pawnMask(Black, static_cast<Square>(square));
+        pawnAttacks[White][square] = maskPawnAttacks(White, static_cast<Square>(square));
+        pawnAttacks[Black][square] = maskPawnAttacks(Black, static_cast<Square>(square));
 
         // inititalize knight attacks knightAttacks[square]
-        knightAttacks[square] = knightMask(static_cast<Square>(square));
+        knightAttacks[square] = maskKnightAttacks(static_cast<Square>(square));
         
-        // inititalize king attacks
-        kingAttacks[square] = kingMask(static_cast<Square>(square));
+        // inititalize king attacks kingAttacks[square]
+        kingAttacks[square] = maskKingAttacks(static_cast<Square>(square));
     }
-    //for (int square = A1; square <= H8; square++) {
-    //    std::cout << "Square: " << square << "\n";
-    //    //printBitboard(pawnAttacks[Black][square]);
-    //    printBitboard(knightAttacks[square]);
-    //}
 
     // inititalize bishop attacks
 
@@ -69,13 +96,12 @@ Board::Board()
    
 }
 
-Board::Bitboard Board::pawnMask(Color color, Square square) const {
+Board::Bitboard Board::maskPawnAttacks(Color color, Square square) const {
 
     Bitboard bitboard = 0ULL;
     Bitboard attacks = 0ULL;
 
     setBit(bitboard, square);
-
     if (color == White) {
 
         if ((bitboard << 7) & Board::notFile_H) { attacks |= (bitboard << 7); }
@@ -90,13 +116,12 @@ Board::Bitboard Board::pawnMask(Color color, Square square) const {
     return attacks;
 }
 
-Board::Bitboard Board::knightMask(Square square) const {
+Board::Bitboard Board::maskKnightAttacks(Square square) const {
 
     Bitboard bitboard = 0ULL;
     Bitboard attacks = 0ULL;
 
     setBit(bitboard, square);
-    // 6, 15, 17, 10 
     if ((bitboard << 6) & Board::notFile_HG) { attacks |= (bitboard << 6); }   // 2 files left (spatially)
     if ((bitboard << 15) & Board::notFile_H) { attacks |= (bitboard << 15); }  // 1 file left (spatially)
     if ((bitboard << 17) & Board::notFile_A) { attacks |= (bitboard << 17); }  // 1 file right (spatially)
@@ -110,13 +135,12 @@ Board::Bitboard Board::knightMask(Square square) const {
     return attacks;
 }
 
-Board::Bitboard Board::kingMask(Square square) const {
+Board::Bitboard Board::maskKingAttacks(Square square) const {
 
     Bitboard bitboard = 0ULL;
     Bitboard attacks = 0ULL;
 
     setBit(bitboard, square);
-
     if ((bitboard << 7) & Board::notFile_H) { attacks |= (bitboard << 7); }
     if ((bitboard << 9) & Board::notFile_A) { attacks |= (bitboard << 9); }
     if ((bitboard >> 7) & Board::notFile_A) { attacks |= (bitboard >> 7); }
@@ -130,7 +154,7 @@ Board::Bitboard Board::kingMask(Square square) const {
     return attacks;
 }
 
-Board::Bitboard Board::bishopMask(Square square) const {
+Board::Bitboard Board::maskBishopAttacks(Square square) const {
 
     Bitboard attacks = 0ULL;
 
@@ -146,7 +170,7 @@ Board::Bitboard Board::bishopMask(Square square) const {
     return attacks;
 }
 
-Board::Bitboard Board::rookMask(Square square) const {
+Board::Bitboard Board::maskRookAttacks(Square square) const {
 
     Bitboard attacks = 0ULL;
 
@@ -160,6 +184,78 @@ Board::Bitboard Board::rookMask(Square square) const {
     for (file = target_file - 1; file >= 1; file--) { setBit(attacks, static_cast<Square>(target_rank * 8 + file)); }
 
     return attacks;
+}
+
+Board::Bitboard Board::dynamicBishopAttacks(Square square, Bitboard blocker) const {
+
+    Bitboard attacks = 0ULL;
+
+    int rank, file;
+    int target_rank = square / 8;
+    int target_file = square % 8;
+
+    for (rank = target_rank + 1, file = target_file + 1; rank <= 7 && file <= 7; rank++, file++) { 
+        setBit(attacks, static_cast<Square>(rank * 8 + file));
+        if (1ULL << (rank * 8 + file) & blocker) { break; }
+    }
+    for (rank = target_rank + 1, file = target_file - 1; rank <= 7 && file >= 0; rank++, file--) { 
+        setBit(attacks, static_cast<Square>(rank * 8 + file));
+        if (1ULL << (rank * 8 + file) & blocker) { break; }
+    }
+    for (rank = target_rank - 1, file = target_file + 1; rank >= 0 && file <= 7; rank--, file++) { 
+        setBit(attacks, static_cast<Square>(rank * 8 + file));
+        if (1ULL << (rank * 8 + file) & blocker) { break; }
+    }
+    for (rank = target_rank - 1, file = target_file - 1; rank >= 0 && file >= 0; rank--, file--) { 
+        setBit(attacks, static_cast<Square>(rank * 8 + file));
+        if (1ULL << (rank * 8 + file) & blocker) { break; } // these could be getBits calls instead of written out
+    }
+
+    return attacks;
+}
+
+Board::Bitboard Board::dynamicRookAttacks(Square square, Bitboard blocker) const {
+
+    Bitboard attacks = 0ULL;
+
+    int rank, file;
+    int target_rank = square / 8;
+    int target_file = square % 8;
+
+    for (rank = target_rank + 1; rank <= 7; rank++) { 
+        setBit(attacks, static_cast<Square>(rank * 8 + target_file));
+        if (1ULL << (rank * 8 + target_file) & blocker) { break; }
+    }
+    for (rank = target_rank - 1; rank >= 0; rank--) { 
+        setBit(attacks, static_cast<Square>(rank * 8 + target_file));
+        if (1ULL << (rank * 8 + target_file) & blocker) { break; }
+    }
+    for (file = target_file + 1; file <= 7; file++) { 
+        setBit(attacks, static_cast<Square>(target_rank * 8 + file));
+        if (1ULL << (target_rank * 8 + file) & blocker) { break; }
+    }
+    for (file = target_file - 1; file >= 0; file--) { 
+        setBit(attacks, static_cast<Square>(target_rank * 8 + file));
+        if (1ULL << (target_rank * 8 + file) & blocker) { break; }
+    }
+
+    return attacks;
+}
+
+Board::Bitboard Board::setOccupancy(int index, int numMaskBits, Bitboard attackMask) const {
+
+    Bitboard occupancy = 0ULL;
+
+    for (int count = 0; count < numMaskBits; count++) {
+        int square = getLSBIndex(attackMask);
+
+        clearBit(attackMask, static_cast<Square>(square));
+
+        if (index & (1 << count)) {
+            setBit(occupancy, static_cast<Square>(square));
+        }
+    }
+    return occupancy;
 }
 
 void Board::startingPosition() {
