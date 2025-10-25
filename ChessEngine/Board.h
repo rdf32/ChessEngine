@@ -29,14 +29,13 @@ public:
     static const char* PieceTypeNames[6];
     static const char* SquareNames[64];
 
-
     Board();
     virtual ~Board() = default;
 
     // bit operations
+    static bool getBit(Bitboard bitboard, Square square);
     static void setBit(Bitboard& bitboard, Square square);
     static void clearBit(Bitboard& bitboard, Square square);
-    static bool getBit(Bitboard bitboard, Square square);
     static int countBits(Bitboard bitboard);
     static int getLSBIndex(Bitboard bitboard);
 
@@ -53,12 +52,15 @@ public:
     Bitboard dynamicBishopAttacks(Square square, Bitboard blocker) const;
     Bitboard dynamicRookAttacks(Square square, Bitboard blocker) const;
 
+    // magic bitboard methods
     Bitboard setOccupancy(int index, int numMaskBits, Bitboard attackMask) const;
 
-    // board position functions
-    void startingPosition();
+    // initialization methods
+    void initTables();
+    void setStartingPosition();
+    void initLeaperPieces();
 
-    // debug helper functions
+    // debug helper methods
     void printPieceboards();
     void printOccupancyboards();
     void printBitboard(Bitboard bb);
@@ -84,5 +86,28 @@ private:
 
     // kingAttacks[square]
     Bitboard kingAttacks[64];
+
+    // relevant occupancy bit count for every square (sliding pieces for magic bitboards)
+    const int relevantBitcountBishop[64] = {
+        6, 5, 5, 5, 5, 5, 5, 6,
+        5, 5, 5, 5, 5, 5, 5, 5,
+        5, 5, 7, 7, 7, 7, 5, 5,
+        5, 5, 7, 9, 9, 7, 5, 5,
+        5, 5, 7, 9, 9, 7, 5, 5,
+        5, 5, 7, 7, 7, 7, 5, 5,
+        5, 5, 5, 5, 5, 5, 5, 5,
+        6, 5, 5, 5, 5, 5, 5, 6
+    };
+
+    const int relevantBitcountRook[64] = {
+        12, 11, 11, 11, 11, 11, 11, 12,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        12, 11, 11, 11, 11, 11, 11, 12
+    };
 
 };

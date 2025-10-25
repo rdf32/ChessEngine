@@ -26,7 +26,6 @@ const char* Board::SquareNames[64] = {
         "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
     };
 
-
 void Board::setBit(Bitboard& bitboard, Square square) {
     bitboard |= (1ULL << square);
 }
@@ -63,37 +62,14 @@ int Board::getLSBIndex(Bitboard bitboard) {
 Board::Board()
 {   
     // initialize piece bitboards to 0  
-    for (int piece = Pawn; piece <= King; piece++) {
-            pieceBitboards[White][piece] = 0ULL;
-            pieceBitboards[Black][piece] = 0ULL;
-    }
-    // initialize occupancy bitboards to 0
-    for (int color = White; color <= All; color++) {
-        occupancyBitboards[color] = 0ULL;
-    }
+    initTables();
     // set the starting board position
-    startingPosition();
+    setStartingPosition();
+    // initialize attack tables for leaper pieces (Pawn, Knight, King)
+    initLeaperPieces();
+    // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
+    //initSlidingPieces();
 
-    // initialize attack tables for leaper pieces
-    for (int square = a1; square <= h8; square++) {
-
-        // initialize pawn attacks pawnAttacks[color][square]
-        pawnAttacks[White][square] = maskPawnAttacks(White, static_cast<Square>(square));
-        pawnAttacks[Black][square] = maskPawnAttacks(Black, static_cast<Square>(square));
-
-        // inititalize knight attacks knightAttacks[square]
-        knightAttacks[square] = maskKnightAttacks(static_cast<Square>(square));
-        
-        // inititalize king attacks kingAttacks[square]
-        kingAttacks[square] = maskKingAttacks(static_cast<Square>(square));
-    }
-
-    // inititalize bishop attacks
-
-    // inititalize rook attacks
-
-    // inititalize queen attacks
-   
 }
 
 Board::Bitboard Board::maskPawnAttacks(Color color, Square square) const {
@@ -247,8 +223,8 @@ Board::Bitboard Board::setOccupancy(int index, int numMaskBits, Bitboard attackM
     Bitboard occupancy = 0ULL;
 
     for (int count = 0; count < numMaskBits; count++) {
-        int square = getLSBIndex(attackMask);
 
+        int square = getLSBIndex(attackMask);
         clearBit(attackMask, static_cast<Square>(square));
 
         if (index & (1 << count)) {
@@ -258,7 +234,20 @@ Board::Bitboard Board::setOccupancy(int index, int numMaskBits, Bitboard attackM
     return occupancy;
 }
 
-void Board::startingPosition() {
+
+// initialization methods //
+void Board::initTables() {
+    for (int piece = Pawn; piece <= King; piece++) {
+        pieceBitboards[White][piece] = 0ULL;
+        pieceBitboards[Black][piece] = 0ULL;
+    }
+    // initialize occupancy bitboards to 0
+    for (int color = White; color <= All; color++) {
+        occupancyBitboards[color] = 0ULL;
+    }
+}
+
+void Board::setStartingPosition() {
 
     // set up white pieces for starting position
     pieceBitboards[White][Pawn] = 65280ULL;
@@ -283,6 +272,23 @@ void Board::startingPosition() {
 
 }
 
+void Board::initLeaperPieces() {
+    for (int square = a1; square <= h8; square++) {
+
+        // initialize pawn attacks pawnAttacks[color][square]
+        pawnAttacks[White][square] = maskPawnAttacks(White, static_cast<Square>(square));
+        pawnAttacks[Black][square] = maskPawnAttacks(Black, static_cast<Square>(square));
+
+        // inititalize knight attacks knightAttacks[square]
+        knightAttacks[square] = maskKnightAttacks(static_cast<Square>(square));
+
+        // inititalize king attacks kingAttacks[square]
+        kingAttacks[square] = maskKingAttacks(static_cast<Square>(square));
+    }
+}
+
+
+// helper methods // 
 void Board::printBitboard(Bitboard bb) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";

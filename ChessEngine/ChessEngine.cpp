@@ -2,28 +2,12 @@
 #include <iostream>
 #include "Board.h"
 
-static void printBitboard(Board::Bitboard bb) {
-    for (int rank = 7; rank >= 0; --rank) {
-        std::cout << rank + 1 << "   ";
-        for (int file = 0; file < 8; ++file) {
-            int square = rank * 8 + file;
-            std::cout << (Board::getBit(bb, static_cast<Board::Square>(square)) ? "1 " : ". ");
-        }
-        std::cout << "\n";
-    }
-    std::cout << "\n";
-    std::cout << "    a b c d e f g h\n";
-
-    // Print the bitboard as an unsigned 64-bit integer
-    std::cout << "\nBitboard value: " << static_cast<uint64_t>(bb) << "\n\n";
-}
-
 int main()
 {   
 
     Board board;
-    //board.printPieceboards();
-    //board.printOccupancyboards();
+    board.printPieceboards();
+    board.printOccupancyboards();
 
     //for (int square = Board::A1; square <= Board::H8; square++) {
     //    std::cout << "Square: " << square << std::endl;
@@ -34,25 +18,33 @@ int main()
     //    //printBitboard(board.pawnMask(Board::White, target_square));
 
     //}
-    Board::Bitboard blocker = 0ULL;
-    Board::setBit(blocker, Board::b6);
-    Board::setBit(blocker, Board::g7);
-    Board::setBit(blocker, Board::e3);
-    Board::setBit(blocker, Board::b2);
-    printBitboard(blocker);
-    printBitboard(board.dynamicBishopAttacks(Board::d4, blocker));
+    //Board::Bitboard blocker = 0ULL;
+    //Board::setBit(blocker, Board::b6);
+    //Board::setBit(blocker, Board::g7);
+    //Board::setBit(blocker, Board::e3);
+    //Board::setBit(blocker, Board::b2);
+    //printBitboard(blocker);
+    //printBitboard(board.dynamicBishopAttacks(Board::d4, blocker));
 
-    Board::Bitboard blocker2 = 0ULL;
-    Board::setBit(blocker2, Board::d6);
-    Board::setBit(blocker2, Board::h4);
-    Board::setBit(blocker2, Board::d1);
-    Board::setBit(blocker2, Board::b4);
-    printBitboard(blocker2);
-    printBitboard(board.dynamicRookAttacks(Board::d4, blocker2));
+    //Board::Bitboard blocker2 = 0ULL;
+    //Board::setBit(blocker2, Board::d6);
+    //Board::setBit(blocker2, Board::h4);
+    //Board::setBit(blocker2, Board::d1);
+    //Board::setBit(blocker2, Board::b4);
+    //printBitboard(blocker2);
+    //printBitboard(board.dynamicRookAttacks(Board::d4, blocker2));
 
-    printBitboard(blocker);
-    std::cout << board.countBits(blocker) << std::endl;
-    std::cout << board.getLSBIndex(blocker) << std::endl;
+    //printBitboard(blocker);
+    //std::cout << board.countBits(blocker) << std::endl;
+    //std::cout << board.getLSBIndex(blocker) << std::endl;
+
+    //for (int rank = 0; rank < 8; rank++) {
+    //    for (int file = 0; file < 8; file++) {
+    //        int square = rank * 8 + file;
+    //        std::cout << board.countBits(board.maskRookAttacks(static_cast<Board::Square>(square))) << ", ";
+    //    }
+    //    std::cout << std::endl;
+    //}
 
     return 0;
 }
