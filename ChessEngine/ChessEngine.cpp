@@ -6,8 +6,9 @@ int main()
 {   
 
     Board board;
-    board.printPieceboards();
-    board.printOccupancyboards();
+    //board.printPieceboards();
+    //board.printOccupancyboards();
+    board.init_magic_numbers();
 
     //for (int square = Board::A1; square <= Board::H8; square++) {
     //    std::cout << "Square: " << square << std::endl;

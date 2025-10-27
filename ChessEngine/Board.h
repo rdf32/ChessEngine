@@ -54,11 +54,13 @@ public:
 
     // magic bitboard methods
     Bitboard setOccupancy(int index, int numMaskBits, Bitboard attackMask) const;
+    Bitboard find_magic_number(int square, int relevant_bits, int bishop);
 
     // initialization methods
     void initTables();
     void setStartingPosition();
     void initLeaperPieces();
+    void init_magic_numbers();
 
     // debug helper methods
     void printPieceboards();
@@ -87,6 +89,18 @@ private:
     // kingAttacks[square]
     Bitboard kingAttacks[64];
 
+    //// bishop attack masks
+    //Bitboard bishop_masks[64];
+
+    //// rook attack masks
+    //Bitboard rook_masks[64];
+
+    //// bishop attacks table [square][occupancies]
+    //Bitboard bishop_attacks[64][512];
+
+    //// rook attacks rable [square][occupancies]
+    //Bitboard rook_attacks[64][4096];
+
     // relevant occupancy bit count for every square (sliding pieces for magic bitboards)
     const int relevantBitcountBishop[64] = {
         6, 5, 5, 5, 5, 5, 5, 6,
@@ -109,5 +123,9 @@ private:
         11, 10, 10, 10, 10, 10, 10, 11,
         12, 11, 11, 11, 11, 11, 11, 12
     };
+
+    Bitboard rook_magic_numbers[64];
+    Bitboard bishop_magic_numbers[64];
+
 
 };

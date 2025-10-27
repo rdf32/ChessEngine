@@ -59,8 +59,47 @@ int Board::getLSBIndex(Bitboard bitboard) {
     }
 }
 
-Board::Board()
-{   
+// pseudo random number state
+unsigned int random_state = 1804289383;
+
+// generate 32-bit pseudo legal numbers
+unsigned int get_random_U32_number() {
+    // get current state
+    unsigned int number = random_state;
+
+    // XOR shift algorithm
+    number ^= number << 13;
+    number ^= number >> 17;
+    number ^= number << 5;
+
+    // update random number state
+    random_state = number;
+
+    // return random number
+    return number;
+}
+
+// generate 64-bit pseudo legal numbers
+Board::Bitboard get_random_U64_number() {
+    // define 4 random numbers
+    Board::Bitboard n1, n2, n3, n4;
+
+    // init random numbers slicing 16 bits from MS1B side
+    n1 = (Board::Bitboard)(get_random_U32_number()) & 0xFFFF;
+    n2 = (Board::Bitboard)(get_random_U32_number()) & 0xFFFF;
+    n3 = (Board::Bitboard)(get_random_U32_number()) & 0xFFFF;
+    n4 = (Board::Bitboard)(get_random_U32_number()) & 0xFFFF;
+
+    // return random number
+    return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
+}
+
+// generate magic number candidate
+Board::Bitboard generate_magic_number() {
+    return get_random_U64_number() & get_random_U64_number() & get_random_U64_number();
+}
+
+Board::Board() {   
     // initialize piece bitboards to 0  
     initTables();
     // set the starting board position
@@ -69,7 +108,6 @@ Board::Board()
     initLeaperPieces();
     // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
     //initSlidingPieces();
-
 }
 
 Board::Bitboard Board::maskPawnAttacks(Color color, Square square) const {
@@ -234,6 +272,76 @@ Board::Bitboard Board::setOccupancy(int index, int numMaskBits, Bitboard attackM
     return occupancy;
 }
 
+// find appropriate magic number
+Board::Bitboard Board::find_magic_number(int square, int relevant_bits, int bishop) {
+    // init occupancies
+    Board::Bitboard occupancies[4096];
+
+    // init attack tables
+    Board::Bitboard attacks[4096];
+
+    // init used attacks
+    Board::Bitboard used_attacks[4096];
+
+    // init attack mask for a current piece
+    Board::Bitboard attack_mask = bishop ? maskBishopAttacks(static_cast<Square>(square)) : maskRookAttacks(static_cast<Square>(square));
+
+    // init occupancy indicies
+    int occupancy_indicies = 1 << relevant_bits;
+
+    // loop over occupancy indicies
+    for (int index = 0; index < occupancy_indicies; index++)
+    {
+        // init occupancies
+        occupancies[index] = setOccupancy(index, relevant_bits, attack_mask);
+
+        // init attacks
+        attacks[index] = bishop ? dynamicBishopAttacks(static_cast<Square>(square), occupancies[index]) :
+            dynamicRookAttacks(static_cast<Square>(square), occupancies[index]);
+    }
+
+    // test magic numbers loop
+    for (int random_count = 0; random_count < 100000000; random_count++)
+    {
+        // generate magic number candidate
+        Board::Bitboard magic_number = generate_magic_number();
+
+        // skip inappropriate magic numbers
+        if (countBits((attack_mask * magic_number) & 0xFF00000000000000) < 6) continue;
+
+        // init used attacks
+        memset(used_attacks, 0ULL, sizeof(used_attacks));
+
+        // init index & fail flag
+        int index, fail;
+
+        // test magic index loop
+        for (index = 0, fail = 0; !fail && index < occupancy_indicies; index++)
+        {
+            // init magic index
+            int magic_index = (int)((occupancies[index] * magic_number) >> (64 - relevant_bits));
+
+            // if magic index works
+            if (used_attacks[magic_index] == 0ULL)
+                // init used attacks
+                used_attacks[magic_index] = attacks[index];
+
+            // otherwise
+            else if (used_attacks[magic_index] != attacks[index])
+                // magic index doesn't work
+                fail = 1;
+        }
+
+        // if magic number works
+        if (!fail)
+            // return it
+            return magic_number;
+    }
+
+    // if magic number doesn't work
+    printf("  Magic number fails!\n");
+    return 0ULL;
+}
 
 // initialization methods //
 void Board::initTables() {
@@ -287,6 +395,25 @@ void Board::initLeaperPieces() {
     }
 }
 
+// init magic numbers
+void Board::init_magic_numbers() {
+    // loop over 64 board squares
+    for (int square = 0; square < 64; square++) {
+        // init rook magic numbers
+        //Square square = static_cast<Square>((rank * 8 + file));
+        rook_magic_numbers[square] = find_magic_number(square, relevantBitcountRook[square], 0);
+        printf(" 0x%llxULL\n", rook_magic_numbers[square]);
+    }
+    printf("\n");
+    printf("\n");
+    // loop over 64 board squares
+    for (int square = 0; square < 64; square++) {
+        // init bishop magic numbers
+        //Square square = static_cast<Square>((rank * 8 + file));
+        bishop_magic_numbers[square] = find_magic_number(square, relevantBitcountBishop[square], 1);
+        printf(" 0x%llxULL\n", bishop_magic_numbers[square]);
+    }
+}
 
 // helper methods // 
 void Board::printBitboard(Bitboard bb) {
