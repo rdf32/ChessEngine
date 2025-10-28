@@ -4,11 +4,18 @@
 
 int main()
 {   
-
     Board board;
+
+    Board::Bitboard occupancy = 0ULL;
+    Board::setBit(occupancy, Board::e8);
+    board.printBitboard(occupancy);
+    board.printBitboard(board.get_bishop_attacks(Board::e4, occupancy));
+    board.printBitboard(board.get_rook_attacks(Board::e4, occupancy));
+
     //board.printPieceboards();
     //board.printOccupancyboards();
-    board.init_magic_numbers();
+    //board.initMagicNumbers();
+    //board.initSliderPieces();
 
     //for (int square = Board::A1; square <= Board::H8; square++) {
     //    std::cout << "Square: " << square << std::endl;

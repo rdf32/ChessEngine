@@ -26,6 +26,9 @@ const char* Board::SquareNames[64] = {
         "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
     };
 
+Bitboard Board::rook_attacks[64][4096];
+Bitboard Board::bishop_attacks[64][512];
+
 void Board::setBit(Bitboard& bitboard, Square square) {
     bitboard |= (1ULL << square);
 }
@@ -107,7 +110,7 @@ Board::Board() {
     // initialize attack tables for leaper pieces (Pawn, Knight, King)
     initLeaperPieces();
     // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
-    //initSlidingPieces();
+    initSliderPieces();
 }
 
 Board::Bitboard Board::maskPawnAttacks(Color color, Square square) const {
@@ -272,77 +275,6 @@ Board::Bitboard Board::setOccupancy(int index, int numMaskBits, Bitboard attackM
     return occupancy;
 }
 
-// find appropriate magic number
-Board::Bitboard Board::find_magic_number(int square, int relevant_bits, int bishop) {
-    // init occupancies
-    Board::Bitboard occupancies[4096];
-
-    // init attack tables
-    Board::Bitboard attacks[4096];
-
-    // init used attacks
-    Board::Bitboard used_attacks[4096];
-
-    // init attack mask for a current piece
-    Board::Bitboard attack_mask = bishop ? maskBishopAttacks(static_cast<Square>(square)) : maskRookAttacks(static_cast<Square>(square));
-
-    // init occupancy indicies
-    int occupancy_indicies = 1 << relevant_bits;
-
-    // loop over occupancy indicies
-    for (int index = 0; index < occupancy_indicies; index++)
-    {
-        // init occupancies
-        occupancies[index] = setOccupancy(index, relevant_bits, attack_mask);
-
-        // init attacks
-        attacks[index] = bishop ? dynamicBishopAttacks(static_cast<Square>(square), occupancies[index]) :
-            dynamicRookAttacks(static_cast<Square>(square), occupancies[index]);
-    }
-
-    // test magic numbers loop
-    for (int random_count = 0; random_count < 100000000; random_count++)
-    {
-        // generate magic number candidate
-        Board::Bitboard magic_number = generate_magic_number();
-
-        // skip inappropriate magic numbers
-        if (countBits((attack_mask * magic_number) & 0xFF00000000000000) < 6) continue;
-
-        // init used attacks
-        memset(used_attacks, 0ULL, sizeof(used_attacks));
-
-        // init index & fail flag
-        int index, fail;
-
-        // test magic index loop
-        for (index = 0, fail = 0; !fail && index < occupancy_indicies; index++)
-        {
-            // init magic index
-            int magic_index = (int)((occupancies[index] * magic_number) >> (64 - relevant_bits));
-
-            // if magic index works
-            if (used_attacks[magic_index] == 0ULL)
-                // init used attacks
-                used_attacks[magic_index] = attacks[index];
-
-            // otherwise
-            else if (used_attacks[magic_index] != attacks[index])
-                // magic index doesn't work
-                fail = 1;
-        }
-
-        // if magic number works
-        if (!fail)
-            // return it
-            return magic_number;
-    }
-
-    // if magic number doesn't work
-    printf("  Magic number fails!\n");
-    return 0ULL;
-}
-
 // initialization methods //
 void Board::initTables() {
     for (int piece = Pawn; piece <= King; piece++) {
@@ -395,24 +327,67 @@ void Board::initLeaperPieces() {
     }
 }
 
-// init magic numbers
-void Board::init_magic_numbers() {
-    // loop over 64 board squares
-    for (int square = 0; square < 64; square++) {
-        // init rook magic numbers
-        //Square square = static_cast<Square>((rank * 8 + file));
-        rook_magic_numbers[square] = find_magic_number(square, relevantBitcountRook[square], 0);
-        printf(" 0x%llxULL\n", rook_magic_numbers[square]);
+void Board::initSliderPieces() {
+
+    for (int square = a1; square <= h8; square++) {
+        bishop_masks[square] = maskBishopAttacks(static_cast<Square>(square));
+
+        Bitboard attack_mask = bishop_masks[square];
+        int relevantBitsCount = countBits(attack_mask);
+        int occupancyInds = (1 << relevantBitsCount);
+
+        //std::cout << "Occupancy Inds: " << occupancyInds << std::endl;
+        //printBitboard(static_cast<Bitboard>(occupancyInds));
+
+        for (int index = 0; index < occupancyInds; index++) {
+
+            Bitboard occupancy = setOccupancy(index, relevantBitsCount, attack_mask);
+            int magicIndex = (occupancy * bishop_magic_numbers[square]) >> (64 - relevantBitcountBishop[square]);
+
+            bishop_attacks[square][magicIndex] = dynamicBishopAttacks(static_cast<Square>(square), occupancy);
+        }
     }
-    printf("\n");
-    printf("\n");
-    // loop over 64 board squares
-    for (int square = 0; square < 64; square++) {
-        // init bishop magic numbers
-        //Square square = static_cast<Square>((rank * 8 + file));
-        bishop_magic_numbers[square] = find_magic_number(square, relevantBitcountBishop[square], 1);
-        printf(" 0x%llxULL\n", bishop_magic_numbers[square]);
+
+    for (int square = a1; square <= h8; square++) {
+        rook_masks[square] = maskRookAttacks(static_cast<Square>(square));
+
+        Bitboard attack_mask = rook_masks[square];
+        int relevantBitsCount = countBits(attack_mask);
+        int occupancyInds = (1 << relevantBitsCount);
+
+        //std::cout << "Occupancy Inds: " << occupancyInds << std::endl;
+        //printBitboard(static_cast<Bitboard>(occupancyInds));
+
+        for (int index = 0; index < occupancyInds; index++) {
+
+            Bitboard occupancy = setOccupancy(index, relevantBitsCount, attack_mask);
+            int magicIndex = (occupancy * rook_magic_numbers[square]) >> (64 - relevantBitcountRook[square]);
+
+            rook_attacks[square][magicIndex] = dynamicRookAttacks(static_cast<Square>(square), occupancy);
+        }
     }
+}
+
+// get bishop attacks
+Bitboard Board::get_bishop_attacks(int square, Bitboard occupancy) const {
+    // get bishop attacks assuming current board occupancy
+    occupancy &= bishop_masks[square];
+    occupancy *= bishop_magic_numbers[square];
+    occupancy >>= 64 - relevantBitcountBishop[square];
+
+    // return bishop attacks
+    return bishop_attacks[square][occupancy];
+}
+
+// get rook attacks
+Bitboard Board::get_rook_attacks(int square, Bitboard occupancy) const {
+    // get bishop attacks assuming current board occupancy
+    occupancy &= rook_masks[square];
+    occupancy *= rook_magic_numbers[square];
+    occupancy >>= 64 - relevantBitcountRook[square];
+
+    // return rook attacks
+    return rook_attacks[square][occupancy];
 }
 
 // helper methods // 
@@ -451,6 +426,96 @@ void Board::printOccupancyboards() {
     }
 }
 
+// find appropriate magic number
+//Board::Bitboard Board::findMagicNumber(int square, int relevant_bits, int bishop) {
+//    // init occupancies
+//    Board::Bitboard occupancies[4096];
+//
+//    // init attack tables
+//    Board::Bitboard attacks[4096];
+//
+//    // init used attacks
+//    Board::Bitboard used_attacks[4096];
+//
+//    // init attack mask for a current piece
+//    Board::Bitboard attack_mask = bishop ? maskBishopAttacks(static_cast<Square>(square)) : maskRookAttacks(static_cast<Square>(square));
+//
+//    // init occupancy indicies
+//    int occupancy_indicies = 1 << relevant_bits;
+//
+//    // loop over occupancy indicies
+//    for (int index = 0; index < occupancy_indicies; index++)
+//    {
+//        // init occupancies
+//        occupancies[index] = setOccupancy(index, relevant_bits, attack_mask);
+//
+//        // init attacks
+//        attacks[index] = bishop ? dynamicBishopAttacks(static_cast<Square>(square), occupancies[index]) :
+//            dynamicRookAttacks(static_cast<Square>(square), occupancies[index]);
+//    }
+//
+//    // test magic numbers loop
+//    for (int random_count = 0; random_count < 100000000; random_count++)
+//    {
+//        // generate magic number candidate
+//        Board::Bitboard magic_number = generate_magic_number();
+//
+//        // skip inappropriate magic numbers
+//        if (countBits((attack_mask * magic_number) & 0xFF00000000000000) < 6) continue;
+//
+//        // init used attacks
+//        memset(used_attacks, 0ULL, sizeof(used_attacks));
+//
+//        // init index & fail flag
+//        int index, fail;
+//
+//        // test magic index loop
+//        for (index = 0, fail = 0; !fail && index < occupancy_indicies; index++)
+//        {
+//            // init magic index
+//            int magic_index = (int)((occupancies[index] * magic_number) >> (64 - relevant_bits));
+//
+//            // if magic index works
+//            if (used_attacks[magic_index] == 0ULL)
+//                // init used attacks
+//                used_attacks[magic_index] = attacks[index];
+//
+//            // otherwise
+//            else if (used_attacks[magic_index] != attacks[index])
+//                // magic index doesn't work
+//                fail = 1;
+//        }
+//
+//        // if magic number works
+//        if (!fail)
+//            // return it
+//            return magic_number;
+//    }
+//
+//    // if magic number doesn't work
+//    printf("  Magic number fails!\n");
+//    return 0ULL;
+//}
+//
+//// init magic numbers
+//void Board::initMagicNumbers() {
+//    // loop over 64 board squares
+//    for (int square = 0; square < 64; square++) {
+//        // init rook magic numbers
+//        //Square square = static_cast<Square>((rank * 8 + file));
+//        //rook_magic_numbers[square] = findMagicNumber(square, relevantBitcountRook[square], 0);
+//        printf(" 0x%llxULL,\n", rook_magic_numbers[square]);
+//    }
+//    printf("\n");
+//    printf("\n");
+//    // loop over 64 board squares
+//    for (int square = 0; square < 64; square++) {
+//        // init bishop magic numbers
+//        //Square square = static_cast<Square>((rank * 8 + file));
+//        //bishop_magic_numbers[square] = findMagicNumber(square, relevantBitcountBishop[square], 1);
+//        printf(" 0x%llxULL,\n", bishop_magic_numbers[square]);
+//    }
+//}
 
 
 
