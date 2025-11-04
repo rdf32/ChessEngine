@@ -4,13 +4,24 @@
 
 int main()
 {   
+    std::cout << "creating board 1" << std::endl;
+
     Board board;
 
-    Board::Bitboard occupancy = 0ULL;
-    Board::setBit(occupancy, Board::e8);
-    board.printBitboard(occupancy);
-    board.printBitboard(board.get_bishop_attacks(Board::e4, occupancy));
-    board.printBitboard(board.get_rook_attacks(Board::e4, occupancy));
+    std::cout << "creating board 2" << std::endl;
+
+    Board board2;
+
+    std::cout << "creating board 3" << std::endl;
+
+    Board board3;
+
+
+    //Bitboard occupancy = 0ULL;
+    //setBit(occupancy, e8);
+    //board.printBitboard(occupancy);
+    //board.printBitboard(board.get_bishop_attacks(e4, occupancy));
+    //board.printBitboard(board.get_rook_attacks(e4, occupancy));
 
     //board.printPieceboards();
     //board.printOccupancyboards();
