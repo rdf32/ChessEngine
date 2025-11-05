@@ -13,9 +13,9 @@
 //8  9  10 11 12 13 14 15 ->a2 to h2
 //0  1  2  3  4  5  6  7  ->a1 to h1
 
-const char* Board::ColorNames[3] = { "White", "Black", "All" };
-const char* Board::PieceTypeNames[6] = { "Pawn", "Knight", "Bishop", "Rook", "Queen", "King" };
-const char* Board::SquareNames[64] = {
+const char* ColorNames[3] = { "White", "Black", "All" };
+const char* PieceTypeNames[6] = { "Pawn", "Knight", "Bishop", "Rook", "Queen", "King" };
+const char* SquareNames[64] = {
         "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
         "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
         "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
@@ -25,42 +25,6 @@ const char* Board::SquareNames[64] = {
         "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
         "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
     };
-
-Bitboard Board::rook_attacks[64][4096];
-Bitboard Board::bishop_attacks[64][512];
-
-void Board::setBit(Bitboard& bitboard, Square square) {
-    bitboard |= (1ULL << square);
-}
-
-void Board::clearBit(Bitboard& bitboard, Square square) {
-    bitboard &= ~(1ULL << square);
-}
-
-bool Board::getBit(Bitboard bitboard, Square square) {
-    return bitboard & (1ULL << square);
-}
-
-int Board::countBits(Bitboard bitboard) {
-
-    int count = 0;
-
-    while (bitboard) {
-        bitboard &= bitboard - 1;
-        count++;
-    }
-    return count;
-}
-
-int Board::getLSBIndex(Bitboard bitboard) {
-
-    if (bitboard) {
-        return countBits((bitboard & (~bitboard + 1)) - 1);
-    }
-    else {
-        return -1;
-    }
-}
 
 // pseudo random number state
 unsigned int random_state = 1804289383;
@@ -83,24 +47,256 @@ unsigned int get_random_U32_number() {
 }
 
 // generate 64-bit pseudo legal numbers
-Board::Bitboard get_random_U64_number() {
+Bitboard get_random_U64_number() {
     // define 4 random numbers
-    Board::Bitboard n1, n2, n3, n4;
+    Bitboard n1, n2, n3, n4;
 
     // init random numbers slicing 16 bits from MS1B side
-    n1 = (Board::Bitboard)(get_random_U32_number()) & 0xFFFF;
-    n2 = (Board::Bitboard)(get_random_U32_number()) & 0xFFFF;
-    n3 = (Board::Bitboard)(get_random_U32_number()) & 0xFFFF;
-    n4 = (Board::Bitboard)(get_random_U32_number()) & 0xFFFF;
+    n1 = (Bitboard)(get_random_U32_number()) & 0xFFFF;
+    n2 = (Bitboard)(get_random_U32_number()) & 0xFFFF;
+    n3 = (Bitboard)(get_random_U32_number()) & 0xFFFF;
+    n4 = (Bitboard)(get_random_U32_number()) & 0xFFFF;
 
     // return random number
     return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
 }
 
 // generate magic number candidate
-Board::Bitboard generate_magic_number() {
+Bitboard generate_magic_number() {
     return get_random_U64_number() & get_random_U64_number() & get_random_U64_number();
 }
+
+void setBit(Bitboard& bitboard, Square square) {
+    bitboard |= (1ULL << square);
+}
+
+void clearBit(Bitboard& bitboard, Square square) {
+    bitboard &= ~(1ULL << square);
+}
+
+bool getBit(Bitboard bitboard, Square square) {
+    return bitboard & (1ULL << square);
+}
+
+int countBits(Bitboard bitboard) {
+
+    int count = 0;
+
+    while (bitboard) {
+        bitboard &= bitboard - 1;
+        count++;
+    }
+    return count;
+}
+
+int getLSBIndex(Bitboard bitboard) {
+
+    if (bitboard) {
+        return countBits((bitboard & (~bitboard + 1)) - 1);
+    }
+    else {
+        return -1;
+    }
+}
+
+Bitboard setOccupancy(int index, int numMaskBits, Bitboard attackMask) {
+
+    Bitboard occupancy = 0ULL;
+
+    for (int count = 0; count < numMaskBits; count++) {
+
+        int square = getLSBIndex(attackMask);
+        clearBit(attackMask, static_cast<Square>(square));
+
+        if (index & (1 << count)) {
+            setBit(occupancy, static_cast<Square>(square));
+        }
+    }
+    return occupancy;
+}
+
+static const int relevantBitcountBishop[64] = {
+        6, 5, 5, 5, 5, 5, 5, 6,
+        5, 5, 5, 5, 5, 5, 5, 5,
+        5, 5, 7, 7, 7, 7, 5, 5,
+        5, 5, 7, 9, 9, 7, 5, 5,
+        5, 5, 7, 9, 9, 7, 5, 5,
+        5, 5, 7, 7, 7, 7, 5, 5,
+        5, 5, 5, 5, 5, 5, 5, 5,
+        6, 5, 5, 5, 5, 5, 5, 6
+};
+
+static const int relevantBitcountRook[64] = {
+    12, 11, 11, 11, 11, 11, 11, 12,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    12, 11, 11, 11, 11, 11, 11, 12
+};
+
+// helper masks
+static const Bitboard notFile_A = 18374403900871474942ULL;
+static const Bitboard notFile_AB = 18229723555195321596ULL;
+static const Bitboard notFile_H = 9187201950435737471ULL;
+static const Bitboard notFile_HG = 4557430888798830399ULL;
+
+// pawnAttacks[color (white, black)][square]
+static Bitboard pawnAttacks[2][64];
+
+// knightAttacks[square]
+static Bitboard knightAttacks[64];
+
+// kingAttacks[square]
+static Bitboard kingAttacks[64];
+
+//// bishop attack masks
+static Bitboard bishop_masks[64];
+
+//// rook attack masks
+static Bitboard rook_masks[64];
+
+//// bishop attacks table [square][occupancies]
+static Bitboard bishop_attacks[64][512];
+
+//// rook attacks rable [square][occupancies]
+static Bitboard rook_attacks[64][4096];
+
+static const Bitboard rook_magic_numbers[64] = {
+    0x8a80104000800020ULL,
+    0x140002000100040ULL,
+    0x2801880a0017001ULL,
+    0x100081001000420ULL,
+    0x200020010080420ULL,
+    0x3001c0002010008ULL,
+    0x8480008002000100ULL,
+    0x2080088004402900ULL,
+    0x800098204000ULL,
+    0x2024401000200040ULL,
+    0x100802000801000ULL,
+    0x120800800801000ULL,
+    0x208808088000400ULL,
+    0x2802200800400ULL,
+    0x2200800100020080ULL,
+    0x801000060821100ULL,
+    0x80044006422000ULL,
+    0x100808020004000ULL,
+    0x12108a0010204200ULL,
+    0x140848010000802ULL,
+    0x481828014002800ULL,
+    0x8094004002004100ULL,
+    0x4010040010010802ULL,
+    0x20008806104ULL,
+    0x100400080208000ULL,
+    0x2040002120081000ULL,
+    0x21200680100081ULL,
+    0x20100080080080ULL,
+    0x2000a00200410ULL,
+    0x20080800400ULL,
+    0x80088400100102ULL,
+    0x80004600042881ULL,
+    0x4040008040800020ULL,
+    0x440003000200801ULL,
+    0x4200011004500ULL,
+    0x188020010100100ULL,
+    0x14800401802800ULL,
+    0x2080040080800200ULL,
+    0x124080204001001ULL,
+    0x200046502000484ULL,
+    0x480400080088020ULL,
+    0x1000422010034000ULL,
+    0x30200100110040ULL,
+    0x100021010009ULL,
+    0x2002080100110004ULL,
+    0x202008004008002ULL,
+    0x20020004010100ULL,
+    0x2048440040820001ULL,
+    0x101002200408200ULL,
+    0x40802000401080ULL,
+    0x4008142004410100ULL,
+    0x2060820c0120200ULL,
+    0x1001004080100ULL,
+    0x20c020080040080ULL,
+    0x2935610830022400ULL,
+    0x44440041009200ULL,
+    0x280001040802101ULL,
+    0x2100190040002085ULL,
+    0x80c0084100102001ULL,
+    0x4024081001000421ULL,
+    0x20030a0244872ULL,
+    0x12001008414402ULL,
+    0x2006104900a0804ULL,
+    0x1004081002402ULL
+};
+static const Bitboard bishop_magic_numbers[64] = {
+    0x40040844404084ULL,
+    0x2004208a004208ULL,
+    0x10190041080202ULL,
+    0x108060845042010ULL,
+    0x581104180800210ULL,
+    0x2112080446200010ULL,
+    0x1080820820060210ULL,
+    0x3c0808410220200ULL,
+    0x4050404440404ULL,
+    0x21001420088ULL,
+    0x24d0080801082102ULL,
+    0x1020a0a020400ULL,
+    0x40308200402ULL,
+    0x4011002100800ULL,
+    0x401484104104005ULL,
+    0x801010402020200ULL,
+    0x400210c3880100ULL,
+    0x404022024108200ULL,
+    0x810018200204102ULL,
+    0x4002801a02003ULL,
+    0x85040820080400ULL,
+    0x810102c808880400ULL,
+    0xe900410884800ULL,
+    0x8002020480840102ULL,
+    0x220200865090201ULL,
+    0x2010100a02021202ULL,
+    0x152048408022401ULL,
+    0x20080002081110ULL,
+    0x4001001021004000ULL,
+    0x800040400a011002ULL,
+    0xe4004081011002ULL,
+    0x1c004001012080ULL,
+    0x8004200962a00220ULL,
+    0x8422100208500202ULL,
+    0x2000402200300c08ULL,
+    0x8646020080080080ULL,
+    0x80020a0200100808ULL,
+    0x2010004880111000ULL,
+    0x623000a080011400ULL,
+    0x42008c0340209202ULL,
+    0x209188240001000ULL,
+    0x400408a884001800ULL,
+    0x110400a6080400ULL,
+    0x1840060a44020800ULL,
+    0x90080104000041ULL,
+    0x201011000808101ULL,
+    0x1a2208080504f080ULL,
+    0x8012020600211212ULL,
+    0x500861011240000ULL,
+    0x180806108200800ULL,
+    0x4000020e01040044ULL,
+    0x300000261044000aULL,
+    0x802241102020002ULL,
+    0x20906061210001ULL,
+    0x5a84841004010310ULL,
+    0x4010801011c04ULL,
+    0xa010109502200ULL,
+    0x4a02012000ULL,
+    0x500201010098b028ULL,
+    0x8040002811040900ULL,
+    0x28000010020204ULL,
+    0x6000020202d0240ULL,
+    0x8918844842082200ULL,
+    0x4010011029020020ULL
+
+};
 
 Board::Board() {   
     // initialize piece bitboards to 0  
@@ -113,7 +309,7 @@ Board::Board() {
     initSliderPieces();
 }
 
-Board::Bitboard Board::maskPawnAttacks(Color color, Square square) const {
+Bitboard Board::maskPawnAttacks(Color color, Square square) const {
 
     Bitboard bitboard = 0ULL;
     Bitboard attacks = 0ULL;
@@ -121,57 +317,57 @@ Board::Bitboard Board::maskPawnAttacks(Color color, Square square) const {
     setBit(bitboard, square);
     if (color == White) {
 
-        if ((bitboard << 7) & Board::notFile_H) { attacks |= (bitboard << 7); }
-        if ((bitboard << 9) & Board::notFile_A) { attacks |= (bitboard << 9); }
+        if ((bitboard << 7) & notFile_H) { attacks |= (bitboard << 7); }
+        if ((bitboard << 9) & notFile_A) { attacks |= (bitboard << 9); }
 
     }
     else {
-        if ((bitboard >> 7) & Board::notFile_A) { attacks |= (bitboard >> 7); }
-        if ((bitboard >> 9) & Board::notFile_H) { attacks |= (bitboard >> 9); }
+        if ((bitboard >> 7) & notFile_A) { attacks |= (bitboard >> 7); }
+        if ((bitboard >> 9) & notFile_H) { attacks |= (bitboard >> 9); }
     }
 
     return attacks;
 }
 
-Board::Bitboard Board::maskKnightAttacks(Square square) const {
+Bitboard Board::maskKnightAttacks(Square square) const {
 
     Bitboard bitboard = 0ULL;
     Bitboard attacks = 0ULL;
 
     setBit(bitboard, square);
-    if ((bitboard << 6) & Board::notFile_HG) { attacks |= (bitboard << 6); }   // 2 files left (spatially)
-    if ((bitboard << 15) & Board::notFile_H) { attacks |= (bitboard << 15); }  // 1 file left (spatially)
-    if ((bitboard << 17) & Board::notFile_A) { attacks |= (bitboard << 17); }  // 1 file right (spatially)
-    if ((bitboard << 10) & Board::notFile_AB) { attacks |= (bitboard << 10); } // 2 files right (spatially)
+    if ((bitboard << 6) & notFile_HG) { attacks |= (bitboard << 6); }   // 2 files left (spatially)
+    if ((bitboard << 15) & notFile_H) { attacks |= (bitboard << 15); }  // 1 file left (spatially)
+    if ((bitboard << 17) & notFile_A) { attacks |= (bitboard << 17); }  // 1 file right (spatially)
+    if ((bitboard << 10) & notFile_AB) { attacks |= (bitboard << 10); } // 2 files right (spatially)
 
-    if ((bitboard >> 6) & Board::notFile_AB) { attacks |= (bitboard >> 6); }   // 2 files right (spatially)
-    if ((bitboard >> 15) & Board::notFile_A) { attacks |= (bitboard >> 15); }  // 1 file right (spatially)
-    if ((bitboard >> 17) & Board::notFile_H) { attacks |= (bitboard >> 17); }  // 1 file left (spatially)
-    if ((bitboard >> 10) & Board::notFile_HG) { attacks |= (bitboard >> 10); } // 2 files left (spatially)
+    if ((bitboard >> 6) & notFile_AB) { attacks |= (bitboard >> 6); }   // 2 files right (spatially)
+    if ((bitboard >> 15) & notFile_A) { attacks |= (bitboard >> 15); }  // 1 file right (spatially)
+    if ((bitboard >> 17) & notFile_H) { attacks |= (bitboard >> 17); }  // 1 file left (spatially)
+    if ((bitboard >> 10) & notFile_HG) { attacks |= (bitboard >> 10); } // 2 files left (spatially)
 
     return attacks;
 }
 
-Board::Bitboard Board::maskKingAttacks(Square square) const {
+Bitboard Board::maskKingAttacks(Square square) const {
 
     Bitboard bitboard = 0ULL;
     Bitboard attacks = 0ULL;
 
     setBit(bitboard, square);
-    if ((bitboard << 7) & Board::notFile_H) { attacks |= (bitboard << 7); }
-    if ((bitboard << 9) & Board::notFile_A) { attacks |= (bitboard << 9); }
-    if ((bitboard >> 7) & Board::notFile_A) { attacks |= (bitboard >> 7); }
-    if ((bitboard >> 9) & Board::notFile_H) { attacks |= (bitboard >> 9); }
+    if ((bitboard << 7) & notFile_H) { attacks |= (bitboard << 7); }
+    if ((bitboard << 9) & notFile_A) { attacks |= (bitboard << 9); }
+    if ((bitboard >> 7) & notFile_A) { attacks |= (bitboard >> 7); }
+    if ((bitboard >> 9) & notFile_H) { attacks |= (bitboard >> 9); }
 
     if (bitboard << 8) { attacks |= (bitboard << 8); }
     if (bitboard >> 8) { attacks |= (bitboard >> 8); }
-    if ((bitboard << 1) & Board::notFile_A) { attacks |= (bitboard << 1); }
-    if ((bitboard >> 1) & Board::notFile_H) { attacks |= (bitboard >> 1); }
+    if ((bitboard << 1) & notFile_A) { attacks |= (bitboard << 1); }
+    if ((bitboard >> 1) & notFile_H) { attacks |= (bitboard >> 1); }
 
     return attacks;
 }
 
-Board::Bitboard Board::maskBishopAttacks(Square square) const {
+Bitboard Board::maskBishopAttacks(Square square) const {
 
     Bitboard attacks = 0ULL;
 
@@ -187,7 +383,7 @@ Board::Bitboard Board::maskBishopAttacks(Square square) const {
     return attacks;
 }
 
-Board::Bitboard Board::maskRookAttacks(Square square) const {
+Bitboard Board::maskRookAttacks(Square square) const {
 
     Bitboard attacks = 0ULL;
 
@@ -203,7 +399,7 @@ Board::Bitboard Board::maskRookAttacks(Square square) const {
     return attacks;
 }
 
-Board::Bitboard Board::dynamicBishopAttacks(Square square, Bitboard blocker) const {
+Bitboard Board::dynamicBishopAttacks(Square square, Bitboard blocker) const {
 
     Bitboard attacks = 0ULL;
 
@@ -231,7 +427,7 @@ Board::Bitboard Board::dynamicBishopAttacks(Square square, Bitboard blocker) con
     return attacks;
 }
 
-Board::Bitboard Board::dynamicRookAttacks(Square square, Bitboard blocker) const {
+Bitboard Board::dynamicRookAttacks(Square square, Bitboard blocker) const {
 
     Bitboard attacks = 0ULL;
 
@@ -257,22 +453,6 @@ Board::Bitboard Board::dynamicRookAttacks(Square square, Bitboard blocker) const
     }
 
     return attacks;
-}
-
-Board::Bitboard Board::setOccupancy(int index, int numMaskBits, Bitboard attackMask) const {
-
-    Bitboard occupancy = 0ULL;
-
-    for (int count = 0; count < numMaskBits; count++) {
-
-        int square = getLSBIndex(attackMask);
-        clearBit(attackMask, static_cast<Square>(square));
-
-        if (index & (1 << count)) {
-            setBit(occupancy, static_cast<Square>(square));
-        }
-    }
-    return occupancy;
 }
 
 // initialization methods //
@@ -316,54 +496,74 @@ void Board::initLeaperPieces() {
     for (int square = a1; square <= h8; square++) {
 
         // initialize pawn attacks pawnAttacks[color][square]
-        pawnAttacks[White][square] = maskPawnAttacks(White, static_cast<Square>(square));
-        pawnAttacks[Black][square] = maskPawnAttacks(Black, static_cast<Square>(square));
+        int rank = square / 8;
+        if (!pawnAttacks[White][square] && rank != 7){
+            std::cout << "init white pawn attack table for square: " << square << " rank: " << rank << std::endl;
+            pawnAttacks[White][square] = maskPawnAttacks(White, static_cast<Square>(square));
+        }
+        
+        if (!pawnAttacks[Black][square] && rank != 0) {
+            std::cout << "init black pawn attack table for square: " << square << " rank: " << rank << std::endl;
+            pawnAttacks[Black][square] = maskPawnAttacks(Black, static_cast<Square>(square));
+        }
 
-        // inititalize knight attacks knightAttacks[square]
-        knightAttacks[square] = maskKnightAttacks(static_cast<Square>(square));
+        if (!knightAttacks[square]) {
+            // inititalize knight attacks knightAttacks[square]
+            knightAttacks[square] = maskKnightAttacks(static_cast<Square>(square));
+            std::cout << "init knight attack table for square: " << square << std::endl;
+        }
 
-        // inititalize king attacks kingAttacks[square]
-        kingAttacks[square] = maskKingAttacks(static_cast<Square>(square));
+        if (!kingAttacks[square]) {
+            // inititalize king attacks kingAttacks[square]
+            kingAttacks[square] = maskKingAttacks(static_cast<Square>(square));
+            std::cout << "init king attack table for square: " << square << std::endl;
+        }
     }
 }
 
 void Board::initSliderPieces() {
 
     for (int square = a1; square <= h8; square++) {
-        bishop_masks[square] = maskBishopAttacks(static_cast<Square>(square));
+        if (!bishop_masks[square]) {
+            bishop_masks[square] = maskBishopAttacks(static_cast<Square>(square));
 
-        Bitboard attack_mask = bishop_masks[square];
-        int relevantBitsCount = countBits(attack_mask);
-        int occupancyInds = (1 << relevantBitsCount);
+            Bitboard attack_mask = bishop_masks[square];
+            int relevantBitsCount = countBits(attack_mask);
+            int occupancyInds = (1 << relevantBitsCount);
 
-        //std::cout << "Occupancy Inds: " << occupancyInds << std::endl;
-        //printBitboard(static_cast<Bitboard>(occupancyInds));
+            //std::cout << "Occupancy Inds: " << occupancyInds << std::endl;
+            //printBitboard(static_cast<Bitboard>(occupancyInds));
 
-        for (int index = 0; index < occupancyInds; index++) {
+            for (int index = 0; index < occupancyInds; index++) {
 
-            Bitboard occupancy = setOccupancy(index, relevantBitsCount, attack_mask);
-            int magicIndex = (occupancy * bishop_magic_numbers[square]) >> (64 - relevantBitcountBishop[square]);
+                Bitboard occupancy = setOccupancy(index, relevantBitsCount, attack_mask);
+                int magicIndex = (occupancy * bishop_magic_numbers[square]) >> (64 - relevantBitcountBishop[square]);
 
-            bishop_attacks[square][magicIndex] = dynamicBishopAttacks(static_cast<Square>(square), occupancy);
+                bishop_attacks[square][magicIndex] = dynamicBishopAttacks(static_cast<Square>(square), occupancy);
+            }
+            std::cout << "init bishop attack tables for square: " << square << std::endl;
         }
     }
 
     for (int square = a1; square <= h8; square++) {
-        rook_masks[square] = maskRookAttacks(static_cast<Square>(square));
+        if (!rook_masks[square]) {
+            rook_masks[square] = maskRookAttacks(static_cast<Square>(square));
 
-        Bitboard attack_mask = rook_masks[square];
-        int relevantBitsCount = countBits(attack_mask);
-        int occupancyInds = (1 << relevantBitsCount);
+            Bitboard attack_mask = rook_masks[square];
+            int relevantBitsCount = countBits(attack_mask);
+            int occupancyInds = (1 << relevantBitsCount);
 
-        //std::cout << "Occupancy Inds: " << occupancyInds << std::endl;
-        //printBitboard(static_cast<Bitboard>(occupancyInds));
+            //std::cout << "Occupancy Inds: " << occupancyInds << std::endl;
+            //printBitboard(static_cast<Bitboard>(occupancyInds));
 
-        for (int index = 0; index < occupancyInds; index++) {
+            for (int index = 0; index < occupancyInds; index++) {
 
-            Bitboard occupancy = setOccupancy(index, relevantBitsCount, attack_mask);
-            int magicIndex = (occupancy * rook_magic_numbers[square]) >> (64 - relevantBitcountRook[square]);
+                Bitboard occupancy = setOccupancy(index, relevantBitsCount, attack_mask);
+                int magicIndex = (occupancy * rook_magic_numbers[square]) >> (64 - relevantBitcountRook[square]);
 
-            rook_attacks[square][magicIndex] = dynamicRookAttacks(static_cast<Square>(square), occupancy);
+                rook_attacks[square][magicIndex] = dynamicRookAttacks(static_cast<Square>(square), occupancy);
+            }
+            std::cout << "init rook attack tables for square: " << square << std::endl;
         }
     }
 }
