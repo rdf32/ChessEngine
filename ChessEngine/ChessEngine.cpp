@@ -7,16 +7,6 @@ int main()
     std::cout << "creating board 1" << std::endl;
 
     Board board;
-
-<<<<<<< HEAD
-    Board::Bitboard occupancy = 0ULL;
-    Board::setBit(occupancy, Board::e8);
-    Board::setBit(occupancy, Board::f5);
-
-    board.printBitboard(occupancy);
-    board.printBitboard(board.getBishopAttacks(Board::e4, occupancy));
-    board.printBitboard(board.getRookAttacks(Board::e4, occupancy));
-=======
     std::cout << "creating board 2" << std::endl;
 
     Board board2;
@@ -25,55 +15,6 @@ int main()
 
     Board board3;
 
-
-    //Bitboard occupancy = 0ULL;
-    //setBit(occupancy, e8);
-    //board.printBitboard(occupancy);
-    //board.printBitboard(board.get_bishop_attacks(e4, occupancy));
-    //board.printBitboard(board.get_rook_attacks(e4, occupancy));
->>>>>>> a349c0194dddbf2cad22f1c67558ed61e47c2728
-
-    //board.printPieceboards();
-    //board.printOccupancyboards();
-    //board.initMagicNumbers();
-    //board.initSliderPieces();
-
-    //for (int square = Board::A1; square <= Board::H8; square++) {
-    //    std::cout << "Square: " << square << std::endl;
-    //    Board::Square target_square = static_cast<Board::Square>(square);
-    //    //printBitboard(board.rookMask(target_square));
-    //    //printBitboard(board.kingMask(target_square));
-    //    //printBitboard(board.bishopAttacksOTF(target_square, 0ULL));
-    //    //printBitboard(board.pawnMask(Board::White, target_square));
-
-    //}
-    //Board::Bitboard blocker = 0ULL;
-    //Board::setBit(blocker, Board::b6);
-    //Board::setBit(blocker, Board::g7);
-    //Board::setBit(blocker, Board::e3);
-    //Board::setBit(blocker, Board::b2);
-    //printBitboard(blocker);
-    //printBitboard(board.dynamicBishopAttacks(Board::d4, blocker));
-
-    //Board::Bitboard blocker2 = 0ULL;
-    //Board::setBit(blocker2, Board::d6);
-    //Board::setBit(blocker2, Board::h4);
-    //Board::setBit(blocker2, Board::d1);
-    //Board::setBit(blocker2, Board::b4);
-    //printBitboard(blocker2);
-    //printBitboard(board.dynamicRookAttacks(Board::d4, blocker2));
-
-    //printBitboard(blocker);
-    //std::cout << board.countBits(blocker) << std::endl;
-    //std::cout << board.getLSBIndex(blocker) << std::endl;
-
-    //for (int rank = 0; rank < 8; rank++) {
-    //    for (int file = 0; file < 8; file++) {
-    //        int square = rank * 8 + file;
-    //        std::cout << board.countBits(board.maskRookAttacks(static_cast<Board::Square>(square))) << ", ";
-    //    }
-    //    std::cout << std::endl;
-    //}
 
     return 0;
 }

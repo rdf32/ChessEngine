@@ -492,7 +492,7 @@ void Board::setStartingPosition() {
 
 }
 
-void Board::initLeaperPieces() {
+void Board::initLeaperPieces() const {
     for (int square = a1; square <= h8; square++) {
 
         // initialize pawn attacks pawnAttacks[color][square]
@@ -521,7 +521,7 @@ void Board::initLeaperPieces() {
     }
 }
 
-void Board::initSliderPieces() {
+void Board::initSliderPieces() const {
 
     for (int square = a1; square <= h8; square++) {
         if (!bishop_masks[square]) {
@@ -569,7 +569,7 @@ void Board::initSliderPieces() {
 }
 
 // get bishop attacks
-Bitboard Board::getBishopAttacks(int square, Bitboard occupancy) const {
+inline Bitboard Board::getBishopAttacks(int square, Bitboard occupancy) const {
     // get bishop attacks assuming current board occupancy
     occupancy &= bishop_masks[square];
     occupancy *= bishop_magic_numbers[square];
@@ -580,7 +580,7 @@ Bitboard Board::getBishopAttacks(int square, Bitboard occupancy) const {
 }
 
 // get rook attacks
-Bitboard Board::getRookAttacks(int square, Bitboard occupancy) const {
+inline Bitboard Board::getRookAttacks(int square, Bitboard occupancy) const {
     // get bishop attacks assuming current board occupancy
     occupancy &= rook_masks[square];
     occupancy *= rook_magic_numbers[square];
