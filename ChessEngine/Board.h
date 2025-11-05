@@ -56,8 +56,8 @@ public:
     // magic bitboard methods
     Bitboard setOccupancy(int index, int numMaskBits, Bitboard attackMask) const;
     //Bitboard findMagicNumber(int square, int relevant_bits, int bishop);
-    Bitboard get_bishop_attacks(int square, Bitboard occupancy) const;
-    Bitboard get_rook_attacks(int square, Bitboard occupancy) const;
+    Bitboard getBishopAttacks(int square, Bitboard occupancy) const;
+    Bitboard getRookAttacks(int square, Bitboard occupancy) const;
 
 
     // initialization methods

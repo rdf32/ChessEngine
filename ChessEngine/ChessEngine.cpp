@@ -8,9 +8,11 @@ int main()
 
     Board::Bitboard occupancy = 0ULL;
     Board::setBit(occupancy, Board::e8);
+    Board::setBit(occupancy, Board::f5);
+
     board.printBitboard(occupancy);
-    board.printBitboard(board.get_bishop_attacks(Board::e4, occupancy));
-    board.printBitboard(board.get_rook_attacks(Board::e4, occupancy));
+    board.printBitboard(board.getBishopAttacks(Board::e4, occupancy));
+    board.printBitboard(board.getRookAttacks(Board::e4, occupancy));
 
     //board.printPieceboards();
     //board.printOccupancyboards();

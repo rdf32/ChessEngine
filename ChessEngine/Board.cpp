@@ -369,7 +369,7 @@ void Board::initSliderPieces() {
 }
 
 // get bishop attacks
-Bitboard Board::get_bishop_attacks(int square, Bitboard occupancy) const {
+Bitboard Board::getBishopAttacks(int square, Bitboard occupancy) const {
     // get bishop attacks assuming current board occupancy
     occupancy &= bishop_masks[square];
     occupancy *= bishop_magic_numbers[square];
@@ -380,7 +380,7 @@ Bitboard Board::get_bishop_attacks(int square, Bitboard occupancy) const {
 }
 
 // get rook attacks
-Bitboard Board::get_rook_attacks(int square, Bitboard occupancy) const {
+Bitboard Board::getRookAttacks(int square, Bitboard occupancy) const {
     // get bishop attacks assuming current board occupancy
     occupancy &= rook_masks[square];
     occupancy *= rook_magic_numbers[square];
