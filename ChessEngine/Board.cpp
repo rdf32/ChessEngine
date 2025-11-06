@@ -14,7 +14,7 @@
 //8  9  10 11 12 13 14 15 ->a2 to h2
 //0  1  2  3  4  5  6  7  ->a1 to h1
 
-Logger logger(Logger::Level::DEBUG);
+Logger logger(Logger::Level::INFO);
 
 const char* ColorNames[3] = { "White", "Black", "All" };
 const char* PieceTypeNames[6] = { "Pawn", "Knight", "Bishop", "Rook", "Queen", "King" };
@@ -315,6 +315,13 @@ Board::Board() {
     initLeaperPieces();
     // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
     initSliderPieces();
+
+    side = White;
+    enpassant = no_sq;
+    castle |= wk;
+    castle |= wq;
+    castle |= bk;
+    castle |= bq;
 
     printBoard();
 }
@@ -625,6 +632,18 @@ void Board::printBoard() const {
     }
     std::cout << "\n";
     std::cout << "    a b c d e f g h\n";
+
+    std::cout << "  Side:     " << (!side ? "white" : "black") << std::endl;;
+    // print enpassant square
+    std::cout << "  Enpassant:   " << (enpassant != no_sq ? SquareNames[enpassant] : "no") << std::endl;
+
+    // print castling rights
+    std::cout << "  Castling:  " << 
+        (castle & wk ? 'K' : '-') << 
+        (castle & wq ? 'Q' : '-') << 
+        (castle & bk ? 'k' : '-') << 
+        (castle & bq ? 'q' : '-') << std::endl;
+
 }
 
 

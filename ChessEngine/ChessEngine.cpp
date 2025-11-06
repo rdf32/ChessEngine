@@ -6,15 +6,16 @@
 int main()
 {   
     std::cout << "creating board 1" << std::endl;
-
     Board board;
-    std::cout << "creating board 2" << std::endl;
+    std::cout << "\n";
 
+    std::cout << "creating board 2" << std::endl;
     Board board2;
+    std::cout << "\n";
 
     std::cout << "creating board 3" << std::endl;
-
     Board board3;
+    std::cout << "\n";
 
 
     return 0;

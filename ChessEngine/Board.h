@@ -10,7 +10,7 @@ enum Square {
     a5, b5, c5, d5, e5, f5, g5, h5,
     a6, b6, c6, d6, e6, f6, g6, h6,
     a7, b7, c7, d7, e7, f7, g7, h7,
-    a8, b8, c8, d8, e8, f8, g8, h8
+    a8, b8, c8, d8, e8, f8, g8, h8, no_sq
 };
 
 enum Color {
@@ -20,6 +20,11 @@ enum Color {
 enum PieceType {
     Pawn, Knight, Bishop, Rook, Queen, King
 };
+
+enum CastlingType {
+    wk = 1, wq = 2, bk = 4, bq = 8
+};
+
 
 // bit operations
 bool getBit(Bitboard bitboard, Square square);
@@ -76,4 +81,7 @@ private:
     // occupancyBitboards[color (white, black, all)]
     Bitboard occupancyBitboards[3];
 
+    int side;
+    int enpassant;
+    int castle;
 };
