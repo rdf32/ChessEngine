@@ -59,7 +59,6 @@ public:
     void initTables();
     void setStartingPosition();
     void initLeaperPieces();
-    //void initMagicNumbers();
     void initSliderPieces();
 
     // debug helper methods
