@@ -51,20 +51,22 @@ public:
     Bitboard dynamicRookAttacks(Square square, Bitboard blocker) const;
 
     //Bitboard findMagicNumber(int square, int relevant_bits, int bishop);
-    Bitboard get_bishop_attacks(int square, Bitboard occupancy) const;
-    Bitboard get_rook_attacks(int square, Bitboard occupancy) const;
+    inline Bitboard getBishopAttacks(int square, Bitboard occupancy) const;
+    inline Bitboard getRookAttacks(int square, Bitboard occupancy) const;
 
 
     // initialization methods
     void initTables();
     void setStartingPosition();
-    void initLeaperPieces();
-    void initSliderPieces();
+    void initLeaperPieces() const;
+    //void initMagicNumbers();
+    void initSliderPieces() const;
 
     // debug helper methods
     void printPieceboards();
     void printOccupancyboards();
     void printBitboard(Bitboard bb);
+    void printBoard() const;
 
 private:
 
