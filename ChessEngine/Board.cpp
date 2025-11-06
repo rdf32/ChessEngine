@@ -1,4 +1,4 @@
-
+#pragma once
 #include <cstdint>
 #include <iostream>
 #include "Board.h"
@@ -14,7 +14,7 @@
 //8  9  10 11 12 13 14 15 ->a2 to h2
 //0  1  2  3  4  5  6  7  ->a1 to h1
 
-Logger logger(Logger::Level::INFO);
+Logger logger(Logger::Level::DEBUG);
 
 const char* ColorNames[3] = { "White", "Black", "All" };
 const char* PieceTypeNames[6] = { "Pawn", "Knight", "Bishop", "Rook", "Queen", "King" };
