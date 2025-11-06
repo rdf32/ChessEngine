@@ -66,6 +66,7 @@ public:
     void printPieceboards();
     void printOccupancyboards();
     void printBitboard(Bitboard bb);
+    void printBoard() const;
 
 private:
 

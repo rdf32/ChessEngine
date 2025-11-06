@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <iostream>
 #include "Board.h"
+#include "Logger.h"
 
 //Bit index : Square: bigger number left << smaller >> right
 //56 57 58 59 60 61 62 63 ->a8 to h8
@@ -12,6 +13,8 @@
 //16 17 18 19 20 21 22 23 ->a3 to h3
 //8  9  10 11 12 13 14 15 ->a2 to h2
 //0  1  2  3  4  5  6  7  ->a1 to h1
+
+Logger logger(Logger::Level::INFO);
 
 const char* ColorNames[3] = { "White", "Black", "All" };
 const char* PieceTypeNames[6] = { "Pawn", "Knight", "Bishop", "Rook", "Queen", "King" };
@@ -25,6 +28,11 @@ const char* SquareNames[64] = {
         "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
         "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
     };
+
+const char* PieceSymbols[2][6] = { 
+    { "P", "N", "B", "R", "Q", "K" },
+    { "p", "n", "b", "r", "q", "k" } 
+};
 
 // pseudo random number state
 unsigned int random_state = 1804289383;
@@ -307,6 +315,8 @@ Board::Board() {
     initLeaperPieces();
     // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
     initSliderPieces();
+
+    printBoard();
 }
 
 Bitboard Board::maskPawnAttacks(Color color, Square square) const {
@@ -498,25 +508,25 @@ void Board::initLeaperPieces() const {
         // initialize pawn attacks pawnAttacks[color][square]
         int rank = square / 8;
         if (!pawnAttacks[White][square] && rank != 7){
-            std::cout << "init white pawn attack table for square: " << square << " rank: " << rank << std::endl;
+            logger.debug("init white pawn attack table for square: " + std::to_string(square) + " rank: " + std::to_string(rank));
             pawnAttacks[White][square] = maskPawnAttacks(White, static_cast<Square>(square));
         }
         
         if (!pawnAttacks[Black][square] && rank != 0) {
-            std::cout << "init black pawn attack table for square: " << square << " rank: " << rank << std::endl;
+            logger.debug("init black pawn attack table for square: " + std::to_string(square) + " rank: " + std::to_string(rank));
             pawnAttacks[Black][square] = maskPawnAttacks(Black, static_cast<Square>(square));
         }
 
         if (!knightAttacks[square]) {
             // inititalize knight attacks knightAttacks[square]
             knightAttacks[square] = maskKnightAttacks(static_cast<Square>(square));
-            std::cout << "init knight attack table for square: " << square << std::endl;
+            logger.debug("init knight attack table for square: " + std::to_string(square));
         }
 
         if (!kingAttacks[square]) {
             // inititalize king attacks kingAttacks[square]
             kingAttacks[square] = maskKingAttacks(static_cast<Square>(square));
-            std::cout << "init king attack table for square: " << square << std::endl;
+            logger.debug("init king attack table for square: " + std::to_string(square));
         }
     }
 }
@@ -541,7 +551,7 @@ void Board::initSliderPieces() const {
 
                 bishop_attacks[square][magicIndex] = dynamicBishopAttacks(static_cast<Square>(square), occupancy);
             }
-            std::cout << "init bishop attack tables for square: " << square << std::endl;
+            logger.debug("init bishop attack tables for square: " + std::to_string(square));
         }
     }
 
@@ -563,7 +573,7 @@ void Board::initSliderPieces() const {
 
                 rook_attacks[square][magicIndex] = dynamicRookAttacks(static_cast<Square>(square), occupancy);
             }
-            std::cout << "init rook attack tables for square: " << square << std::endl;
+            logger.debug("init rook attack tables for square: " + std::to_string(square));
         }
     }
 }
@@ -591,6 +601,33 @@ inline Bitboard Board::getRookAttacks(int square, Bitboard occupancy) const {
 }
 
 // helper methods // 
+
+void Board::printBoard() const {
+    for (int rank = 7; rank >= 0; --rank) {
+        std::cout << rank + 1 << "   ";
+        for (int file = 0; file < 8; ++file) {
+            int square = rank * 8 + file;
+
+            int piece_index = -1;
+            int piece_color = -1;
+            for (int color = White; color <= Black; color++) {
+                for (int piece = Pawn; piece <= King; piece++) {
+                    if (getBit(pieceBitboards[color][piece], static_cast<Square>(square))) {
+                        piece_index = piece;
+                        piece_color = color;
+                        break;
+                    }
+                }
+            }
+            std::cout << (piece_index == -1 ? ". " : std::string(PieceSymbols[piece_color][piece_index]) + " ");
+        }
+        std::cout << "\n";
+    }
+    std::cout << "\n";
+    std::cout << "    a b c d e f g h\n";
+}
+
+
 void Board::printBitboard(Bitboard bb) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";
