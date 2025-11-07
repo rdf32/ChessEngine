@@ -1,6 +1,10 @@
 #pragma once
 #include <cstdint>
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <array>
+
 #include "Board.h"
 #include "Logger.h"
 
@@ -33,6 +37,26 @@ const char* PieceSymbols[2][6] = {
     { "P", "N", "B", "R", "Q", "K" },
     { "p", "n", "b", "r", "q", "k" } 
 };
+
+const std::array<Piece, 256> symbolToPiece = [] {
+    std::array<Piece, 256> arr{};
+
+    arr['P'] = { Pawn,   White };
+    arr['N'] = { Knight, White };
+    arr['B'] = { Bishop, White };
+    arr['R'] = { Rook,   White };
+    arr['Q'] = { Queen,  White };
+    arr['K'] = { King,   White };
+
+    arr['p'] = { Pawn,   Black };
+    arr['n'] = { Knight, Black };
+    arr['b'] = { Bishop, Black };
+    arr['r'] = { Rook,   Black };
+    arr['q'] = { Queen,  Black };
+    arr['k'] = { King,   Black };
+
+    return arr;
+    }();
 
 // pseudo random number state
 unsigned int random_state = 1804289383;
@@ -604,6 +628,81 @@ inline Bitboard Board::getRookAttacks(int square, Bitboard occupancy) const {
 
     // return rook attacks
     return rook_attacks[square][occupancy];
+}
+
+
+void Board::parseFEN(const std::string& fen) {
+
+    side = White;
+    enpassant = no_sq;
+    castle = 0;
+
+    memset(pieceBitboards, 0, sizeof(pieceBitboards));
+    memset(occupancyBitboards, 0, sizeof(occupancyBitboards));
+
+    std::string boardT, sideT, castleT, enpassantT;
+    int halfmovelock, fullmovenumber;
+
+    std::istringstream ss(fen);
+    ss >> boardT >> sideT >> castleT >> enpassantT >> halfmovelock >> fullmovenumber;
+
+    // Parse board
+    int rank = 7;
+    int file = 0;
+    for (char c : boardT) {
+        if (c == '/') {
+            rank--;
+            file = 0;
+        }
+        else if (isdigit(c)) {
+            file += c - '0';
+        }
+        else {
+            int square = rank * 8 + file;
+            Piece piece = symbolToPiece[c];
+            setBit(pieceBitboards[piece.color][piece.type], static_cast<Square>(square));
+            file++;
+        }
+    }
+
+    // Parse side to move
+    side = (sideT == "w") ? White : Black;
+
+    // Parse castling rights
+    for (char c : castleT) {
+        switch (c) {
+        case 'K': castle |= wk; break;
+        case 'Q': castle |= wq; break;
+        case 'k': castle |= bk; break;
+        case 'q': castle |= bq; break;
+        case '-': break;
+        default: break;
+        }
+    }
+
+    // Parse en passant
+    if (enpassantT != "-") {
+        int ep_file = enpassantT[0] - 'a';
+        int ep_rank = enpassantT[1] - '1';
+        enpassant = ep_rank * 8 + ep_file;
+    }
+    else {
+        enpassant = no_sq;
+    }
+
+    // Set occupancy boards
+    for (int color = White; color <= Black; color++) {
+        for (int piece = Pawn; piece <= King; piece++) {
+            occupancyBitboards[color] |= pieceBitboards[color][piece];
+        }
+    }
+    occupancyBitboards[All] = occupancyBitboards[White] | occupancyBitboards[Black];
+
+    //printBoard();
+
+    //for (int color = White; color <= All; color++) {
+        //printBitboard(occupancyBitboards[color]);
+    //}
 }
 
 // helper methods // 

@@ -21,10 +21,14 @@ enum PieceType {
     Pawn, Knight, Bishop, Rook, Queen, King
 };
 
+struct Piece {
+    PieceType type;
+    Color color;
+};
+
 enum CastlingType {
     wk = 1, wq = 2, bk = 4, bq = 8
 };
-
 
 // bit operations
 bool getBit(Bitboard bitboard, Square square);
@@ -66,6 +70,8 @@ public:
     void initLeaperPieces() const;
     //void initMagicNumbers();
     void initSliderPieces() const;
+
+    void parseFEN(const std::string& fen);
 
     // debug helper methods
     void printPieceboards();
