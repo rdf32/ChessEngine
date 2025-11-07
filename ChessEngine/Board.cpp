@@ -548,8 +548,7 @@ void Board::initSliderPieces() const {
             int relevantBitsCount = countBits(attack_mask);
             int occupancyInds = (1 << relevantBitsCount);
 
-            //std::cout << "Occupancy Inds: " << occupancyInds << std::endl;
-            //printBitboard(static_cast<Bitboard>(occupancyInds));
+            logger.debug("Occupancy Inds: " + std::to_string(occupancyInds));
 
             for (int index = 0; index < occupancyInds; index++) {
 
