@@ -60,8 +60,10 @@ public:
     Bitboard dynamicRookAttacks(Square square, Bitboard blocker) const;
 
     //Bitboard findMagicNumber(int square, int relevant_bits, int bishop);
-    inline Bitboard getBishopAttacks(int square, Bitboard occupancy) const;
-    inline Bitboard getRookAttacks(int square, Bitboard occupancy) const;
+    Bitboard getBishopAttacks(int square, Bitboard occupancy) const;
+    Bitboard getRookAttacks(int square, Bitboard occupancy) const;
+    Bitboard getQueenAttacks(int square, Bitboard occupancy) const;
+
 
 
     // initialization methods

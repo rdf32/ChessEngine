@@ -8,6 +8,8 @@
 #include "Board.h"
 #include "Logger.h"
 
+#define start_position "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
+
 //Bit index : Square: bigger number left << smaller >> right
 //56 57 58 59 60 61 62 63 ->a8 to h8
 //48 49 50 51 52 53 54 55 ->a7 to h7
@@ -333,21 +335,14 @@ static const Bitboard bishop_magic_numbers[64] = {
 Board::Board() {   
     // initialize piece bitboards to 0  
     initTables();
-    // set the starting board position
-    setStartingPosition();
     // initialize attack tables for leaper pieces (Pawn, Knight, King)
     initLeaperPieces();
     // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
     initSliderPieces();
+    // set the starting board position
+    parseFEN(start_position);
 
-    side = White;
-    enpassant = no_sq;
-    castle |= wk;
-    castle |= wq;
-    castle |= bk;
-    castle |= bq;
 
-    printBoard();
 }
 
 Bitboard Board::maskPawnAttacks(Color color, Square square) const {
@@ -508,31 +503,6 @@ void Board::initTables() {
     }
 }
 
-void Board::setStartingPosition() {
-
-    // set up white pieces for starting position
-    pieceBitboards[White][Pawn] = 65280ULL;
-    pieceBitboards[White][Knight] = 66ULL;
-    pieceBitboards[White][Bishop] = 36ULL;
-    pieceBitboards[White][Rook] = 129ULL;
-    pieceBitboards[White][Queen] = 8ULL;
-    pieceBitboards[White][King] = 16ULL;
-
-    // set up black pieces for starting position
-    pieceBitboards[Black][Pawn] = 71776119061217280ULL;
-    pieceBitboards[Black][Knight] = 4755801206503243776ULL;
-    pieceBitboards[Black][Bishop] = 2594073385365405696ULL;
-    pieceBitboards[Black][Rook] = 9295429630892703744ULL;
-    pieceBitboards[Black][Queen] = 576460752303423488ULL;
-    pieceBitboards[Black][King] = 1152921504606846976ULL;
-
-    // set up occupancy boards for starting position
-    occupancyBitboards[White] = 65535ULL;
-    occupancyBitboards[Black] = 18446462598732840960ULL;
-    occupancyBitboards[All] = occupancyBitboards[White] | occupancyBitboards[Black];
-
-}
-
 void Board::initLeaperPieces() const {
     for (int square = a1; square <= h8; square++) {
 
@@ -609,7 +579,7 @@ void Board::initSliderPieces() const {
 }
 
 // get bishop attacks
-inline Bitboard Board::getBishopAttacks(int square, Bitboard occupancy) const {
+Bitboard Board::getBishopAttacks(int square, Bitboard occupancy) const {
     // get bishop attacks assuming current board occupancy
     occupancy &= bishop_masks[square];
     occupancy *= bishop_magic_numbers[square];
@@ -620,14 +590,22 @@ inline Bitboard Board::getBishopAttacks(int square, Bitboard occupancy) const {
 }
 
 // get rook attacks
-inline Bitboard Board::getRookAttacks(int square, Bitboard occupancy) const {
-    // get bishop attacks assuming current board occupancy
+Bitboard Board::getRookAttacks(int square, Bitboard occupancy) const {
+    // get rook attacks assuming current board occupancy
     occupancy &= rook_masks[square];
     occupancy *= rook_magic_numbers[square];
     occupancy >>= 64 - relevantBitcountRook[square];
 
     // return rook attacks
     return rook_attacks[square][occupancy];
+}
+
+Bitboard Board::getQueenAttacks(int square, Bitboard occupancy) const {
+
+    Bitboard diagonalAttacks = getBishopAttacks(square, occupancy);
+    Bitboard straightAttacks = getRookAttacks(square, occupancy);
+
+    return diagonalAttacks | straightAttacks;
 }
 
 
@@ -698,11 +676,8 @@ void Board::parseFEN(const std::string& fen) {
     }
     occupancyBitboards[All] = occupancyBitboards[White] | occupancyBitboards[Black];
 
-    //printBoard();
+    printBoard();
 
-    //for (int color = White; color <= All; color++) {
-        //printBitboard(occupancyBitboards[color]);
-    //}
 }
 
 // helper methods // 
