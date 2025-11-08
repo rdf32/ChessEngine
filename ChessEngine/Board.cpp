@@ -344,10 +344,6 @@ Board::Board() {
     initLeaperPieces();
     // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
     initSliderPieces();
-    // set the starting board position
-    parseFEN(start_position);
-
-
 }
 
 Bitboard Board::maskPawnAttacks(Color color, Square square) const {
