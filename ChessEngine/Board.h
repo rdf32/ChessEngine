@@ -74,12 +74,14 @@ public:
     void initSliderPieces() const;
 
     void parseFEN(const std::string& fen);
+    bool isSquareAttacked(Square square, Color side);
 
     // debug helper methods
     void printPieceboards();
     void printOccupancyboards();
     void printBitboard(Bitboard bb);
     void printBoard() const;
+    void printAttackedSquares(Color side);
 
 private:
 

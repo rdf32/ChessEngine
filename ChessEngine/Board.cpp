@@ -681,7 +681,41 @@ void Board::parseFEN(const std::string& fen) {
 
 }
 
+bool Board::isSquareAttacked(Square square, Color side) {
+    // check if pawn attacks - reverse thinking -- if black pawn attack hits white pawn -- then that sqaure is attacked by white pawn
+    if (pawnAttacks[!side][square] & pieceBitboards[side][Pawn]) { return true; }
+
+    // check if knight attacks
+    if (knightAttacks[square] & pieceBitboards[side][Knight]) { return true; }
+
+    // check if king attacks
+    if (kingAttacks[square] & pieceBitboards[side][King]) { return true; }
+
+    // check if bishop attacks
+    if (getBishopAttacks(square, occupancyBitboards[All]) & pieceBitboards[side][Bishop]) { return true; }
+
+    // check if rook attacks
+    if (getRookAttacks(square, occupancyBitboards[All]) & pieceBitboards[side][Rook]) { return true; }
+
+    // check if queen attacks
+    if (getQueenAttacks(square, occupancyBitboards[All]) & pieceBitboards[side][Queen]) { return true; }
+
+    return false;
+}
 // helper methods // 
+
+void Board::printAttackedSquares(Color side) {
+    for (int rank = 7; rank >= 0; --rank) {
+        std::cout << rank + 1 << "   ";
+        for (int file = 0; file < 8; ++file) {
+            int square = rank * 8 + file;
+            std::cout << (isSquareAttacked(static_cast<Square>(square), side) ? "1 " : ". ");
+        }
+        std::cout << "\n";
+    }
+    std::cout << "\n";
+    std::cout << "    a b c d e f g h\n";
+}
 
 void Board::printBoard() const {
     for (int rank = 7; rank >= 0; --rank) {

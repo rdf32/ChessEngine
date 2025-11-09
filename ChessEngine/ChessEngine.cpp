@@ -16,27 +16,37 @@ int main()
     Board board;
     std::cout << "\n";
 
-    std::cout << "creating board 2" << std::endl;
-    Board board2;
-    std::cout << "\n";
+    //std::cout << "creating board 2" << std::endl;
+    //Board board2;
+    //std::cout << "\n";
 
-    std::cout << "creating board 3" << std::endl;
-    Board board3;
-    std::cout << "\n";
+    //std::cout << "creating board 3" << std::endl;
+    //Board board3;
+    //std::cout << "\n";
     
-    board.parseFEN(empty_board);
-    std::cout << "\n";
+    //board.parseFEN(empty_board);
+    //board.printAttackedSquares(White);
+    //board.printAttackedSquares(Black);
+    //std::cout << "\n";
 
-    board.parseFEN(start_position);
-    std::cout << "\n";
+    //board.parseFEN(start_position);
+    //board.printAttackedSquares(White);
+    //board.printAttackedSquares(Black);
+    //std::cout << "\n";
 
-    board.parseFEN(tricky_position);
-    std::cout << "\n";
+    //board.parseFEN(tricky_position);
+    //board.printAttackedSquares(White);
+    //board.printAttackedSquares(Black);
+    //std::cout << "\n";
 
-    board.parseFEN(killer_position);
-    std::cout << "\n";
+    //board.parseFEN(killer_position);
+    //board.printAttackedSquares(White);
+    //board.printAttackedSquares(Black);
+    //std::cout << "\n";
 
     board.parseFEN(cmk_position);
+    board.printAttackedSquares(White);
+    board.printAttackedSquares(Black);
 
     //Bitboard bitboard = 0ULL;
 
