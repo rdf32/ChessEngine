@@ -702,8 +702,57 @@ bool Board::isSquareAttacked(Square square, Color side) {
 
     return false;
 }
-// helper methods // 
 
+void Board::pawnMoves(Color side) {
+    Bitboard bitboard;
+    int source_square, target_square;
+
+    bitboard = pieceBitboards[side][Pawn];
+    int square_offset = (side == White) ? 8 : -8;
+    int square_left = (side == White) ? a2 : a7;
+    int square_right = (side == White) ? h2 : h7;
+
+    while (bitboard) {
+        
+        source_square = getLSBIndex(bitboard);
+        target_square = source_square + square_offset;
+        bool target_conditional = (side == White) ? target_square < a8 : target_square > h1;
+
+        // generate quite pawn moves
+        if (!target_conditional && !getBit(occupancyBitboards[All], static_cast<Square>(target_square)))
+        {
+            // pawn promotion
+            if (source_square >= square_left && source_square <= square_right)
+            {
+                printf("pawn promotion: %s%sq\n", SquareNames[source_square], SquareNames[target_square]);
+                printf("pawn promotion: %s%sr\n", SquareNames[source_square], SquareNames[target_square]);
+                printf("pawn promotion: %s%sb\n", SquareNames[source_square], SquareNames[target_square]);
+                printf("pawn promotion: %s%sn\n", SquareNames[source_square], SquareNames[target_square]);
+            }
+
+            else
+            {
+                // one square ahead pawn move
+                printf("pawn push: %s%s\n", SquareNames[source_square], SquareNames[target_square]);
+
+                // two squares ahead pawn move
+                if ((source_square >= square_left && source_square <= square_right) && !getBit(occupancyBitboards[All], static_cast<Square>(target_square + square_offset)))
+                    printf("double pawn push: %s%s\n", SquareNames[source_square], SquareNames[target_square + square_offset]);
+            }
+        }
+        // pop ls1b from piece bitboard copy
+        clearBit(bitboard, static_cast<Square>(source_square));
+    }
+}
+
+inline void Board::generateMoves() {
+
+    int source_square, target_square;
+    Bitboard bitboard, attacks;
+
+}
+
+// helper methods // 
 void Board::printAttackedSquares(Color side) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";

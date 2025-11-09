@@ -64,7 +64,10 @@ public:
     Bitboard getRookAttacks(int square, Bitboard occupancy) const;
     Bitboard getQueenAttacks(int square, Bitboard occupancy) const;
 
-
+    // attacking methods
+    bool isSquareAttacked(Square square, Color side);
+    void pawnMoves(Color side);
+    void generateMoves();
 
     // initialization methods
     void initTables();
@@ -73,8 +76,8 @@ public:
     //void initMagicNumbers();
     void initSliderPieces() const;
 
+    // I/O methods
     void parseFEN(const std::string& fen);
-    bool isSquareAttacked(Square square, Color side);
 
     // debug helper methods
     void printPieceboards();
