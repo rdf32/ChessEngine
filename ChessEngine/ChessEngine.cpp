@@ -30,9 +30,13 @@ int main()
     //std::cout << "\n";
 
     //board.parseFEN(start_position);
-    //board.printAttackedSquares(White);
-    //board.printAttackedSquares(Black);
-    //std::cout << "\n";
+    board.parseFEN("8/4P3/2P5/8/8/8/8/8 w - - ");
+    board.printAttackedSquares(White);
+    board.printAttackedSquares(Black);
+    board.pawnMoves(White);
+    board.pawnMoves(Black);
+
+    std::cout << "\n";
 
     //board.parseFEN(tricky_position);
     //board.printAttackedSquares(White);
@@ -44,9 +48,9 @@ int main()
     //board.printAttackedSquares(Black);
     //std::cout << "\n";
 
-    board.parseFEN(cmk_position);
-    board.printAttackedSquares(White);
-    board.printAttackedSquares(Black);
+    //board.parseFEN(cmk_position);
+    //board.printAttackedSquares(White);
+    //board.printAttackedSquares(Black);
 
     //Bitboard bitboard = 0ULL;
 
