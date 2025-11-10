@@ -66,8 +66,9 @@ public:
 
     // attacking methods
     bool isSquareAttacked(Square square, Color side);
+    void kingMoves(Color side);
     void pawnMoves(Color side);
-    //void generateMoves();
+    void generateMoves(Color side);
 
     // initialization methods
     void initTables();

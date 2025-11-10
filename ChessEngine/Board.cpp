@@ -776,12 +776,60 @@ void Board::pawnMoves(Color side) {
     }
 }
 
-//inline void Board::generateMoves() {
-//
-//    int source_square, target_square;
-//    Bitboard bitboard, attacks;
-//
-//}
+void Board::kingMoves(Color side) {
+
+    if (side == White) {
+        if (castle & wk) {
+            // make sure square between king and king's rook are empty
+            if (!getBit(occupancyBitboards[All], f1) && !getBit(occupancyBitboards[All], g1))
+            {
+                // make sure king and the f1 squares are not under attacks
+                if (!isSquareAttacked(e1, Black) && !isSquareAttacked(f1, Black)) {
+                    printf("castling move: e1g1\n");
+                }
+            }
+        }
+        if (castle & wq) {
+            // make sure square between king and queen's rook are empty
+            if (!getBit(occupancyBitboards[All], d1) && !getBit(occupancyBitboards[All], c1) && !getBit(occupancyBitboards[All], b1)) {
+                // make sure king and the d1 squares are not under attacks
+                if (!isSquareAttacked(e1, Black) && !isSquareAttacked(d1, Black)) {
+                    printf("castling move: e1c1\n");
+                }
+            }
+        }
+    }
+    else {
+    
+        if (castle & bk) {
+            // make sure square between king and king's rook are empty
+            if (!getBit(occupancyBitboards[All], f8) && !getBit(occupancyBitboards[All], g8))
+            {
+                // make sure king and the f8 squares are not under attacks
+                if (!isSquareAttacked(e8, White) && !isSquareAttacked(f8, White)) {
+                    printf("castling move: e8g8\n");
+                }
+            }
+        }
+        if (castle & bq)
+        {
+            // make sure square between king and queen's rook are empty
+            if (!getBit(occupancyBitboards[All], d8) && !getBit(occupancyBitboards[All], c8) && !getBit(occupancyBitboards[All], b8))
+            {
+                // make sure king and the d8 squares are not under attacks
+                if (!isSquareAttacked(e8, White) && !isSquareAttacked(d8, White)) {
+                    printf("castling move: e8c8\n");
+                }
+            }
+        }
+    }
+}
+
+inline void Board::generateMoves(Color side) {
+
+    pawnMoves(side);
+    kingMoves(side);
+}
 
 // helper methods // 
 void Board::printAttackedSquares(Color side) {
