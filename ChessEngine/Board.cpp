@@ -704,16 +704,16 @@ bool Board::isSquareAttacked(Square square, Color side) {
 }
 
 void Board::pawnMoves(Color side) {
-    Bitboard bitboard;
+    Bitboard bitboard, attacks;
     int source_square, target_square;
-
-    bitboard = pieceBitboards[side][Pawn];
 
     int square_offset = (side == White) ? 8 : -8;
     int start_rank_left = (side == White) ? a2 : a7;
     int start_rank_right = (side == White) ? h2 : h7;
     int promo_rank_left = (side == White) ? a7 : a2;
     int promo_rank_right = (side == White) ? h7 : h2;
+
+    bitboard = pieceBitboards[side][Pawn];
 
     while (bitboard) {
         
@@ -723,22 +723,17 @@ void Board::pawnMoves(Color side) {
         if (target_square < 0 || target_square > 63) { continue; }
 
         // generate quite pawn moves
-        if (!getBit(occupancyBitboards[All], static_cast<Square>(target_square)))
-        {
+        if (!getBit(occupancyBitboards[All], static_cast<Square>(target_square))) {
             // pawn promotion
-            if (source_square >= promo_rank_left && source_square <= promo_rank_right)
-            {
+            if (source_square >= promo_rank_left && source_square <= promo_rank_right) {
                 printf("pawn promotion: %s%sq\n", SquareNames[source_square], SquareNames[target_square]);
                 printf("pawn promotion: %s%sr\n", SquareNames[source_square], SquareNames[target_square]);
                 printf("pawn promotion: %s%sb\n", SquareNames[source_square], SquareNames[target_square]);
                 printf("pawn promotion: %s%sn\n", SquareNames[source_square], SquareNames[target_square]);
-            }
-
-            else
-            {
+            } 
+            else {
                 // one square ahead pawn move
                 printf("pawn push: %s%s\n", SquareNames[source_square], SquareNames[target_square]);
-
                 // two squares ahead pawn move
                 if ((source_square >= start_rank_left && source_square <= start_rank_right) &&
                     !getBit(occupancyBitboards[All], static_cast<Square>(target_square + square_offset))) {
@@ -747,7 +742,36 @@ void Board::pawnMoves(Color side) {
                 }
             }
         }
-        // pop ls1b from piece bitboard copy
+        // get the attack moves for the selected pawn
+        attacks = pawnAttacks[side][source_square] & occupancyBitboards[!side];
+        while (attacks) {
+            target_square = getLSBIndex(attacks);
+            // pawn promotion
+            if (source_square >= promo_rank_left && source_square <= promo_rank_right) {
+                printf("pawn promotion capture: %s%sq\n", SquareNames[source_square], SquareNames[target_square]);
+                printf("pawn promotion capture: %s%sr\n", SquareNames[source_square], SquareNames[target_square]);
+                printf("pawn promotion capture: %s%sb\n", SquareNames[source_square], SquareNames[target_square]);
+                printf("pawn promotion capture: %s%sn\n", SquareNames[source_square], SquareNames[target_square]);
+            }
+            else {
+                // one square ahead pawn move
+                printf("pawn capture: %s%s\n", SquareNames[source_square], SquareNames[target_square]);
+            }
+            // remove attacked piece from pawn attacks
+            clearBit(attacks, static_cast<Square>(target_square));
+        }
+        // generate enpassant captures on a per piece basis so here for this single piece then next piece next iteration
+        if (enpassant != no_sq) {
+            // lookup pawn attacks and bitwise AND with enpassant square (bit)
+            Bitboard enpassant_attacks = pawnAttacks[side][source_square] & (1ULL << enpassant);
+            // make sure enpassant capture available
+            if (enpassant_attacks) {
+                // init enpassant capture target square
+                int target_enpassant = getLSBIndex(enpassant_attacks);
+                printf("pawn enpassant capture: %s%s\n", SquareNames[source_square], SquareNames[target_enpassant]);
+            }
+        }
+        // remove pawn from current pawns on board
         clearBit(bitboard, static_cast<Square>(source_square));
     }
 }

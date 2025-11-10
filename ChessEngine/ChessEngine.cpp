@@ -30,7 +30,7 @@ int main()
     //std::cout << "\n";
 
     //board.parseFEN(start_position);
-    board.parseFEN("8/4P3/2P5/8/8/8/8/8 w - - ");
+    board.parseFEN("8/4P3/2P5/8/8/2p5/4p3/8 w - - ");
     board.printAttackedSquares(White);
     board.printAttackedSquares(Black);
     board.pawnMoves(White);
