@@ -67,10 +67,10 @@ public:
     // attacking methods
     bool isSquareAttacked(Square square, Color side);
     void pawnMoves(Color side);
-    //void knightMoves(Color side);
-    //void bishopMoves(Color side);
-    //void rookMoves(Color side);
-    //void queenMoves(Color side);
+    void knightMoves(Color side);
+    void bishopMoves(Color side);
+    void rookMoves(Color side);
+    void queenMoves(Color side);
     void kingMoves(Color side);
 
     void generateMoves(Color side);
