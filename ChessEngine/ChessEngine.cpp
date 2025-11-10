@@ -46,7 +46,8 @@ int main()
     board.parseFEN(killer_position);
     board.printAttackedSquares(White);
     board.printAttackedSquares(Black);
-    board.pawnMoves(White);
+    board.generateMoves(White);
+    board.generateMoves(Black);
     std::cout << "\n";
 
     //board.parseFEN(cmk_position);

@@ -825,7 +825,7 @@ void Board::kingMoves(Color side) {
     }
 }
 
-inline void Board::generateMoves(Color side) {
+void Board::generateMoves(Color side) {
 
     pawnMoves(side);
     kingMoves(side);
