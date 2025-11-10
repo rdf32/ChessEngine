@@ -609,7 +609,6 @@ Bitboard Board::getQueenAttacks(int square, Bitboard occupancy) const {
     return diagonalAttacks | straightAttacks;
 }
 
-
 void Board::parseFEN(const std::string& fen) {
 
     side = White;
@@ -678,7 +677,6 @@ void Board::parseFEN(const std::string& fen) {
     occupancyBitboards[All] = occupancyBitboards[White] | occupancyBitboards[Black];
 
     printBoard();
-
 }
 
 bool Board::isSquareAttacked(Square square, Color side) {
@@ -881,7 +879,6 @@ void Board::printBoard() const {
         (castle & bq ? 'q' : '-') << std::endl;
 
 }
-
 
 void Board::printBitboard(Bitboard bb) {
     for (int rank = 7; rank >= 0; --rank) {
