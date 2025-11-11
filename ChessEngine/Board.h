@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 using Bitboard = uint64_t;
+using Move = uint32_t;
 
 enum Square {
     a1, b1, c1, d1, e1, f1, g1, h1,
@@ -39,6 +40,21 @@ int getLSBIndex(Bitboard bitboard);
 
 // magic bitboard methods
 Bitboard setOccupancy(int index, int numMaskBits, Bitboard attackMask);
+
+Move encodeMove(int source, int target, int color, int piece, int pcolor, int promoted, bool capture, bool doubleM, bool enpassant, bool castling);
+void printMove(Move move);
+
+int getSource(Move m);
+int getTarget(Move m);
+int getColor(Move m);
+int getPiece(Move m);
+int getPcolor(Move m);
+int getPromoted(Move m);
+
+bool isCapture(Move m);
+bool isDoublePush(Move m);
+bool isEnPassant(Move m);
+bool isCastling(Move m);
 
 class Board
 {
@@ -104,3 +120,16 @@ private:
     int enpassant;
     int castle;
 };
+
+//binary move bits                               hexidecimal constants
+//
+//0000 0000 0000 0000 0011 1111    source square       0x3f
+//0000 0000 0000 1111 1100 0000    target square       0xfc0
+//0000 0000 0001 0000 0000 0000    color               
+//0000 0000 1110 0000 0000 0000    piece               
+//0000 0001 0000 0000 0000 0000    promoted color      
+//0000 1110 0000 0000 0000 0000    promoted piece      
+//0001 0000 0000 0000 0000 0000    capture flag        0x100000
+//0010 0000 0000 0000 0000 0000    double push flag    0x200000
+//0100 0000 0000 0000 0000 0000    enpassant flag      0x400000
+//1000 0000 0000 0000 0000 0000    castling flag       0x800000

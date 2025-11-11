@@ -65,6 +65,18 @@ const std::array<Piece, 256> symbolToPiece = [] {
     return arr;
     }();
 
+// Bit masks
+constexpr uint32_t FROM_SQ_MASK = 0x00003F;
+constexpr uint32_t TO_SQ_MASK = 0x000FC0;
+constexpr uint32_t COLOR_MASK = 0x001000;
+constexpr uint32_t PIECE_MASK = 0x00E000;
+constexpr uint32_t PCOLOR_MASK = 0x010000;
+constexpr uint32_t PROMO_MASK = 0x0E0000;
+constexpr uint32_t CAPTURE_FLAG = 0x100000;
+constexpr uint32_t DOUBLE_FLAG = 0x200000;
+constexpr uint32_t ENPASSANT_FLAG = 0x400000;
+constexpr uint32_t CASTLE_FLAG = 0x800000;
+
 // pseudo random number state
 unsigned int random_state = 1804289383;
 
@@ -1022,6 +1034,38 @@ void Board::printBoard() const {
 
 }
 
+// Example: create a move
+Move encodeMove(int source, int target, int color, int piece, int pcolor, int promoted, bool capture = false,
+    bool doubleM = false, bool enpassant = false, bool castling = false) {
+
+    Move m = 0;
+    m |= source;
+    m |= (target << 6);
+    m |= (color << 12);
+    m |= (piece << 13);
+    m |= (pcolor << 16);
+    m |= (promoted << 17);
+
+    if (capture) m |= CAPTURE_FLAG;
+    if (doubleM) m |= DOUBLE_FLAG;
+    if (enpassant) m |= ENPASSANT_FLAG;
+    if (castling) m |= CASTLE_FLAG;
+
+    return m;
+}
+
+inline int getSource(Move m) { return  m & FROM_SQ_MASK; }
+inline int getTarget(Move m) { return (m & TO_SQ_MASK) >> 6; }
+inline int getColor(Move m) { return (m & COLOR_MASK) >> 12; }
+inline int getPiece(Move m) { return (m & PIECE_MASK) >> 13; }
+inline int getPcolor(Move m) { return (m & PCOLOR_MASK) >> 16; }
+inline int getPromoted(Move m) { return (m & PROMO_MASK) >> 17; }
+
+inline bool isCapture(Move m) { return m & CAPTURE_FLAG; }
+inline bool isDoublePush(Move m) { return m & DOUBLE_FLAG; }
+inline bool isEnPassant(Move m) { return m & ENPASSANT_FLAG; }
+inline bool isCastling(Move m) { return m & CASTLE_FLAG; }
+
 void Board::printBitboard(Bitboard bb) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";
@@ -1057,6 +1101,27 @@ void Board::printOccupancyboards() {
     }
 }
 
+void printMove(Move move) {
+    // exract move items
+    int source_square = getSource(move);
+    int target_square = getTarget(move);
+    int color = getColor(move);
+    int piece = getPiece(move);
+    int pcolor = getPcolor(move);
+    int promoted_piece = getPromoted(move);
+
+    // print move items
+    std::cout << "source square: " << SquareNames[source_square] << '\n'
+        << "target square: " << SquareNames[target_square] << '\n'
+        << "piece color: " << color << '\n'
+        << "piece: " << PieceSymbols[color][piece] << '\n'
+        << "prom color: " << pcolor << '\n'
+        << "promoted piece: " << PieceSymbols[pcolor][promoted_piece] << '\n'
+        << "capture flag: " << isCapture(move) << '\n'
+        << "double pawn push flag: " << isDoublePush(move) << '\n'
+        << "enpassant flag: " << isEnPassant(move) << '\n'
+        << "castling flag: " << isCastling(move) << '\n';
+}
 // find appropriate magic number
 //Board::Bitboard Board::findMagicNumber(int square, int relevant_bits, int bishop) {
 //    // init occupancies
