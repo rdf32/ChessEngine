@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdint>
+#include <vector>
+
 using Bitboard = uint64_t;
 using Move = uint32_t;
 
@@ -29,6 +31,20 @@ struct Piece {
 
 enum CastlingType {
     wk = 1, wq = 2, bk = 4, bq = 8
+};
+
+struct MoveList {
+    using Move = uint32_t; // 32-bit move encoding
+
+    std::vector<Move> moves;
+
+    MoveList();
+    void add(Move move);
+    size_t size() const noexcept;
+    bool empty() const noexcept;
+    void clear() noexcept;
+    Move operator[](size_t i) const noexcept;
+    Move& operator[](size_t i) noexcept;
 };
 
 // bit operations
@@ -100,6 +116,7 @@ public:
 
     // I/O methods
     void parseFEN(const std::string& fen);
+    const MoveList& getMoveList() const;
 
     // debug helper methods
     void printPieceboards();
@@ -107,6 +124,7 @@ public:
     void printBitboard(Bitboard bb);
     void printBoard() const;
     void printAttackedSquares(Color side);
+    void printMoves() const;
 
 private:
 
@@ -115,6 +133,8 @@ private:
 
     // occupancyBitboards[color (white, black, all)]
     Bitboard occupancyBitboards[3];
+
+    MoveList moves;
 
     int side;
     int enpassant;

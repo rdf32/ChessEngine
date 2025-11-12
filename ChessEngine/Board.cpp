@@ -983,7 +983,24 @@ void Board::generateMoves(Color side) {
     kingMoves(side);
 }
 
+const MoveList& Board::getMoveList() const {
+    return moves;
+}
+
+//const MoveList& ml = pos.getMoveList();
+//std::cout << "Moves: " << ml.size() << "\n";
+
 // helper methods // 
+
+void Board::printMoves() const {
+    std::cout << "Generated " << moves.size() << " moves:\n";
+
+    for (size_t i = 0; i < moves.size(); ++i) {
+        MoveList::Move move = moves[i];
+        std::cout << "Move " << i << ": 0x" << std::hex << move << "\n";
+    }
+}
+
 void Board::printAttackedSquares(Color side) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";
@@ -1122,6 +1139,36 @@ void printMove(Move move) {
         << "enpassant flag: " << isEnPassant(move) << '\n'
         << "castling flag: " << isCastling(move) << '\n';
 }
+
+
+MoveList::MoveList() {
+    moves.reserve(256);
+}
+
+void MoveList::add(Move move) {
+    moves.push_back(move);
+}
+
+size_t MoveList::size() const noexcept {
+    return moves.size();
+}
+
+bool MoveList::empty() const noexcept {
+    return moves.empty();
+}
+
+void MoveList::clear() noexcept {
+    moves.clear();
+}
+
+MoveList::Move MoveList::operator[](size_t i) const noexcept {
+    return moves[i];
+}
+
+MoveList::Move& MoveList::operator[](size_t i) noexcept {
+    return moves[i];
+}
+
 // find appropriate magic number
 //Board::Bitboard Board::findMagicNumber(int square, int relevant_bits, int bishop) {
 //    // init occupancies
