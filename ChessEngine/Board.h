@@ -57,14 +57,13 @@ int getLSBIndex(Bitboard bitboard);
 // magic bitboard methods
 Bitboard setOccupancy(int index, int numMaskBits, Bitboard attackMask);
 
-Move encodeMove(int source, int target, int color, int piece, int pcolor, int promoted, bool capture, bool doubleM, bool enpassant, bool castling);
+Move encodeMove(int source, int target, int color, int piece, int promoted, bool capture, bool doubleM, bool enpassant, bool castling);
 void printMove(Move move);
 
 int getSource(Move m);
 int getTarget(Move m);
 int getColor(Move m);
 int getPiece(Move m);
-int getPcolor(Move m);
 int getPromoted(Move m);
 
 bool isCapture(Move m);
@@ -105,7 +104,9 @@ public:
     void queenMoves(Color side);
     void kingMoves(Color side);
 
-    void generateMoves(Color side);
+    void generateMoves();
+    void resetMoves();
+
 
     // initialization methods
     void initTables();

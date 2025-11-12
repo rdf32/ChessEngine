@@ -738,19 +738,25 @@ void Board::pawnMoves(Color side) {
         if (!getBit(occupancyBitboards[All], static_cast<Square>(target_square))) {
             // pawn promotion
             if (source_square >= promo_rank_left && source_square <= promo_rank_right) {
-                printf("%s%sq  pawn promotion\n", SquareNames[source_square], SquareNames[target_square]);
-                printf("%s%sr  pawn promotion\n", SquareNames[source_square], SquareNames[target_square]);
-                printf("%s%sb  pawn promotion\n", SquareNames[source_square], SquareNames[target_square]);
-                printf("%s%sn  pawn promotion\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Pawn, Queen, false, false, false, false));
+                addMove(encodeMove(source_square, target_square, side, Pawn, Rook, false, false, false, false));
+                addMove(encodeMove(source_square, target_square, side, Pawn, Bishop, false, false, false, false));
+                addMove(encodeMove(source_square, target_square, side, Pawn, Knight, false, false, false, false));
+
+                //printf("%s%sq  pawn promotion\n", SquareNames[source_square], SquareNames[target_square]);
+                //printf("%s%sr  pawn promotion\n", SquareNames[source_square], SquareNames[target_square]);
+                //printf("%s%sb  pawn promotion\n", SquareNames[source_square], SquareNames[target_square]);
+                //printf("%s%sn  pawn promotion\n", SquareNames[source_square], SquareNames[target_square]);
             } 
             else {
                 // one square ahead pawn move
-                printf("%s%s  pawn push\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Pawn, 0, false, false, false, false));
+                //printf("%s%s  pawn push\n", SquareNames[source_square], SquareNames[target_square]);
                 // two squares ahead pawn move
                 if ((source_square >= start_rank_left && source_square <= start_rank_right) &&
                     !getBit(occupancyBitboards[All], static_cast<Square>(target_square + square_offset))) {
-                 
-                    printf("%s%s  double pawn push\n", SquareNames[source_square], SquareNames[target_square + square_offset]);
+                    addMove(encodeMove(source_square, target_square, side, Pawn, 0, false, true, false, false));
+                    //printf("%s%s  double pawn push\n", SquareNames[source_square], SquareNames[target_square + square_offset]);
                 }
             }
         }
@@ -760,14 +766,20 @@ void Board::pawnMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // pawn promotion
             if (source_square >= promo_rank_left && source_square <= promo_rank_right) {
-                printf("%s%sq  pawn promotion capture\n", SquareNames[source_square], SquareNames[target_square]);
-                printf("%s%sr  pawn promotion capture\n", SquareNames[source_square], SquareNames[target_square]);
-                printf("%s%sb  pawn promotion capture\n", SquareNames[source_square], SquareNames[target_square]);
-                printf("%s%sn  pawn promotion capture\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Pawn, Queen, true, false, false, false));
+                addMove(encodeMove(source_square, target_square, side, Pawn, Rook, true, false, false, false));
+                addMove(encodeMove(source_square, target_square, side, Pawn, Bishop, true, false, false, false));
+                addMove(encodeMove(source_square, target_square, side, Pawn, Knight, true, false, false, false));
+
+                //printf("%s%sq  pawn promotion capture\n", SquareNames[source_square], SquareNames[target_square]);
+                //printf("%s%sr  pawn promotion capture\n", SquareNames[source_square], SquareNames[target_square]);
+                //printf("%s%sb  pawn promotion capture\n", SquareNames[source_square], SquareNames[target_square]);
+                //printf("%s%sn  pawn promotion capture\n", SquareNames[source_square], SquareNames[target_square]);
             }
             else {
                 // one square ahead pawn move
-                printf("%s%s  pawn capture\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Pawn, 0, true, false, false, false));
+                //printf("%s%s  pawn capture\n", SquareNames[source_square], SquareNames[target_square]);
             }
             // remove attacked piece from pawn attacks
             clearBit(attacks, static_cast<Square>(target_square));
@@ -780,7 +792,8 @@ void Board::pawnMoves(Color side) {
             if (enpassant_attacks) {
                 // init enpassant capture target square
                 int target_enpassant = getLSBIndex(enpassant_attacks);
-                printf("%s%s  pawn enpassant capture\n", SquareNames[source_square], SquareNames[target_enpassant]);
+                addMove(encodeMove(source_square, target_square, side, Pawn, 0, true, false, true, false));
+                //printf("%s%s  pawn enpassant capture\n", SquareNames[source_square], SquareNames[target_enpassant]);
             }
         }
         // remove pawn from current pawns on board
@@ -804,11 +817,13 @@ void Board::kingMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, King, 0, false, false, false, false));
+                //printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
             }
             else {
                 // captures
-                printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, King, 0, true, false, false, false));
+                //printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
             }
 
             clearBit(attacks, static_cast<Square>(target_square));
@@ -823,7 +838,8 @@ void Board::kingMoves(Color side) {
             {
                 // make sure king and the f1 squares are not under attacks
                 if (!isSquareAttacked(e1, Black) && !isSquareAttacked(f1, Black)) {
-                    printf("e1g1  castling move\n");
+                    addMove(encodeMove(e1, g1, side, King, 0, false, false, false, true));
+                    //printf("e1g1  castling move\n");
                 }
             }
         }
@@ -832,7 +848,8 @@ void Board::kingMoves(Color side) {
             if (!getBit(occupancyBitboards[All], d1) && !getBit(occupancyBitboards[All], c1) && !getBit(occupancyBitboards[All], b1)) {
                 // make sure king and the d1 squares are not under attacks
                 if (!isSquareAttacked(e1, Black) && !isSquareAttacked(d1, Black)) {
-                    printf("e1c1  castling move\n");
+                    addMove(encodeMove(e1, c1, side, King, 0, false, false, false, true));
+                    //printf("e1c1  castling move\n");
                 }
             }
         }
@@ -845,7 +862,8 @@ void Board::kingMoves(Color side) {
             {
                 // make sure king and the f8 squares are not under attacks
                 if (!isSquareAttacked(e8, White) && !isSquareAttacked(f8, White)) {
-                    printf("castling move: e8g8\n");
+                    addMove(encodeMove(e8, g8, side, King, 0, false, false, false, true));
+                    //printf("castling move: e8g8\n");
                 }
             }
         }
@@ -856,7 +874,8 @@ void Board::kingMoves(Color side) {
             {
                 // make sure king and the d8 squares are not under attacks
                 if (!isSquareAttacked(e8, White) && !isSquareAttacked(d8, White)) {
-                    printf("castling move: e8c8\n");
+                    addMove(encodeMove(e8, c8, side, King, 0, false, false, false, true));
+                    //printf("castling move: e8c8\n");
                 }
             }
         }
@@ -879,11 +898,13 @@ void Board::knightMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Knight, 0, false, false, false, false));
+                //printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
             }
             else {
                 // captures
-                printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Knight, 0, true, false, false, false));
+                //printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
             }
             clearBit(attacks, static_cast<Square>(target_square));
         }
@@ -907,11 +928,13 @@ void Board::bishopMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Bishop, 0, false, false, false, false));
+                //printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
             }
             else {
                 // captures
-                printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Bishop, 0, true, false, false, false));
+                //printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
             }
             clearBit(attacks, static_cast<Square>(target_square));
         }
@@ -935,11 +958,13 @@ void Board::rookMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Rook, 0, false, false, false, false));
+                //printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
             }
             else {
                 // captures
-                printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Rook, 0, true, false, false, false));
+                //printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
             }
             clearBit(attacks, static_cast<Square>(target_square));
         }
@@ -963,11 +988,13 @@ void Board::queenMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Queen, 0, false, false, false, false));
+                //printf("%s%s  piece quiet move\n", SquareNames[source_square], SquareNames[target_square]);
             }
             else {
                 // captures
-                printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
+                addMove(encodeMove(source_square, target_square, side, Queen, 0, true, false, false, false));
+                //printf("%s%s  piece capture\n", SquareNames[source_square], SquareNames[target_square]);
             }
             clearBit(attacks, static_cast<Square>(target_square));
         }
@@ -975,47 +1002,23 @@ void Board::queenMoves(Color side) {
     }
 }
 
-void Board::generateMoves(Color side) {
+void Board::generateMoves() {
 
-    pawnMoves(side);
-    knightMoves(side);
-    bishopMoves(side);
-    rookMoves(side);
-    queenMoves(side);
-    kingMoves(side);
+    resetMoves();
+
+    pawnMoves(static_cast<Color>(side));
+    knightMoves(static_cast<Color>(side));
+    bishopMoves(static_cast<Color>(side));
+    rookMoves(static_cast<Color>(side));
+    queenMoves(static_cast<Color>(side));
+    kingMoves(static_cast<Color>(side));
 }
 
 const MoveList& Board::getMoveList() const {
     return moves;
 }
 
-//const MoveList& ml = pos.getMoveList();
-//std::cout << "Moves: " << ml.size() << "\n";
-
 // helper methods // 
-
-//void Board::printMove(Move move) const {
-//    // exract move items
-//    int source_square = getSource(move);
-//    int target_square = getTarget(move);
-//    int color = getColor(move);
-//    int piece = getPiece(move);
-//    int pcolor = getPcolor(move);
-//    int promoted_piece = getPromoted(move);
-//
-//    // print move items
-//    std::cout << "source square: " << SquareNames[source_square] << '\n'
-//        << "target square: " << SquareNames[target_square] << '\n'
-//        << "piece color: " << color << '\n'
-//        << "piece: " << PieceSymbols[color][piece] << '\n'
-//        << "prom color: " << pcolor << '\n'
-//        << "promoted piece: " << PieceSymbols[pcolor][promoted_piece] << '\n'
-//        << "capture flag: " << isCapture(move) << '\n'
-//        << "double pawn push flag: " << isDoublePush(move) << '\n'
-//        << "enpassant flag: " << isEnPassant(move) << '\n'
-//        << "castling flag: " << isCastling(move) << '\n';
-//}
-
 void printMove(Move move) {
     const std::string& from = SquareNames[getSource(move)];
     const std::string& to = SquareNames[getTarget(move)];
@@ -1111,7 +1114,7 @@ void Board::printBoard() const {
 }
 
 // Example: create a move
-Move encodeMove(int source, int target, int color, int piece, int pcolor, int promoted, bool capture = false,
+Move encodeMove(int source, int target, int color, int piece, int promoted, bool capture = false,
     bool doubleM = false, bool enpassant = false, bool castling = false) {
 
     Move m = 0;
@@ -1119,8 +1122,7 @@ Move encodeMove(int source, int target, int color, int piece, int pcolor, int pr
     m |= (target << 6);
     m |= (color << 12);
     m |= (piece << 13);
-    m |= (pcolor << 16);
-    m |= (promoted << 17);
+    m |= (promoted << 16);
 
     if (capture) m |= CAPTURE_FLAG;
     if (doubleM) m |= DOUBLE_FLAG;
@@ -1134,8 +1136,7 @@ inline int getSource(Move m) { return  m & FROM_SQ_MASK; }
 inline int getTarget(Move m) { return (m & TO_SQ_MASK) >> 6; }
 inline int getColor(Move m) { return (m & COLOR_MASK) >> 12; }
 inline int getPiece(Move m) { return (m & PIECE_MASK) >> 13; }
-inline int getPcolor(Move m) { return (m & PCOLOR_MASK) >> 16; }
-inline int getPromoted(Move m) { return (m & PROMO_MASK) >> 17; }
+inline int getPromoted(Move m) { return (m & PROMO_MASK) >> 16; }
 
 inline bool isCapture(Move m) { return m & CAPTURE_FLAG; }
 inline bool isDoublePush(Move m) { return m & DOUBLE_FLAG; }
@@ -1179,6 +1180,10 @@ void Board::printOccupancyboards() {
 
 void Board::addMove(Move move) {
     moves.add(move);
+}
+
+void Board::resetMoves() {
+    moves.clear();
 }
 
 MoveList::MoveList() {
