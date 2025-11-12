@@ -631,10 +631,10 @@ void Board::parseFEN(const std::string& fen) {
     memset(occupancyBitboards, 0, sizeof(occupancyBitboards));
 
     std::string boardT, sideT, castleT, enpassantT;
-    int halfmovelock, fullmovenumber;
+    int halfmoveclock, fullmovenumber;
 
     std::istringstream ss(fen);
-    ss >> boardT >> sideT >> castleT >> enpassantT >> halfmovelock >> fullmovenumber;
+    ss >> boardT >> sideT >> castleT >> enpassantT >> halfmoveclock >> fullmovenumber;
 
     // Parse board
     int rank = 7;
