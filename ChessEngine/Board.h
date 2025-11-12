@@ -58,7 +58,7 @@ int getLSBIndex(Bitboard bitboard);
 Bitboard setOccupancy(int index, int numMaskBits, Bitboard attackMask);
 
 Move encodeMove(int source, int target, int color, int piece, int promoted, bool capture, bool doubleM, bool enpassant, bool castling);
-void printMove(Move move);
+//void printMove(Move move);
 
 int getSource(Move m);
 int getTarget(Move m);
@@ -110,7 +110,7 @@ public:
 
     // initialization methods
     void initTables();
-    void setStartingPosition();
+    //void setStartingPosition();
     void initLeaperPieces() const;
     //void initMagicNumbers();
     void initSliderPieces() const;
