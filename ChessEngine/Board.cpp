@@ -992,6 +992,28 @@ const MoveList& Board::getMoveList() const {
 
 // helper methods // 
 
+void Board::printMove(Move move) const {
+    // exract move items
+    int source_square = getSource(move);
+    int target_square = getTarget(move);
+    int color = getColor(move);
+    int piece = getPiece(move);
+    int pcolor = getPcolor(move);
+    int promoted_piece = getPromoted(move);
+
+    // print move items
+    std::cout << "source square: " << SquareNames[source_square] << '\n'
+        << "target square: " << SquareNames[target_square] << '\n'
+        << "piece color: " << color << '\n'
+        << "piece: " << PieceSymbols[color][piece] << '\n'
+        << "prom color: " << pcolor << '\n'
+        << "promoted piece: " << PieceSymbols[pcolor][promoted_piece] << '\n'
+        << "capture flag: " << isCapture(move) << '\n'
+        << "double pawn push flag: " << isDoublePush(move) << '\n'
+        << "enpassant flag: " << isEnPassant(move) << '\n'
+        << "castling flag: " << isCastling(move) << '\n';
+}
+
 void Board::printMoves() const {
     std::cout << "Generated " << moves.size() << " moves:\n";
 
@@ -1000,6 +1022,9 @@ void Board::printMoves() const {
         std::cout << "Move " << i << ": 0x" << std::hex << move << "\n";
     }
 }
+
+// NEED TO UPDATE PRINTMOVE AND PRINTMOVES FUNCTIONS
+
 
 void Board::printAttackedSquares(Color side) {
     for (int rank = 7; rank >= 0; --rank) {
@@ -1116,28 +1141,6 @@ void Board::printOccupancyboards() {
         std::cout << ColorNames[color] << " " << " has occupancy bitboard: " << "\n";
         printBitboard(bitboard);
     }
-}
-
-void printMove(Move move) {
-    // exract move items
-    int source_square = getSource(move);
-    int target_square = getTarget(move);
-    int color = getColor(move);
-    int piece = getPiece(move);
-    int pcolor = getPcolor(move);
-    int promoted_piece = getPromoted(move);
-
-    // print move items
-    std::cout << "source square: " << SquareNames[source_square] << '\n'
-        << "target square: " << SquareNames[target_square] << '\n'
-        << "piece color: " << color << '\n'
-        << "piece: " << PieceSymbols[color][piece] << '\n'
-        << "prom color: " << pcolor << '\n'
-        << "promoted piece: " << PieceSymbols[pcolor][promoted_piece] << '\n'
-        << "capture flag: " << isCapture(move) << '\n'
-        << "double pawn push flag: " << isDoublePush(move) << '\n'
-        << "enpassant flag: " << isEnPassant(move) << '\n'
-        << "castling flag: " << isCastling(move) << '\n';
 }
 
 

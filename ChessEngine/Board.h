@@ -124,6 +124,7 @@ public:
     void printBitboard(Bitboard bb);
     void printBoard() const;
     void printAttackedSquares(Color side);
+    void printMove(Move move) const;
     void printMoves() const;
 
 private:
