@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <sstream>
 #include <array>
@@ -29,6 +30,7 @@ Logger logger(Logger::Level::INFO);
 
 const char* ColorNames[3] = { "White", "Black", "All" };
 const char* PieceTypeNames[6] = { "Pawn", "Knight", "Bishop", "Rook", "Queen", "King" };
+const std::array<char, 6> PromotedPieces = { ' ', 'k', 'b', 'r', 'q', ' '};
 const char* SquareNames[64] = {
         "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
         "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
@@ -992,39 +994,71 @@ const MoveList& Board::getMoveList() const {
 
 // helper methods // 
 
-void Board::printMove(Move move) const {
-    // exract move items
-    int source_square = getSource(move);
-    int target_square = getTarget(move);
-    int color = getColor(move);
-    int piece = getPiece(move);
-    int pcolor = getPcolor(move);
-    int promoted_piece = getPromoted(move);
+//void Board::printMove(Move move) const {
+//    // exract move items
+//    int source_square = getSource(move);
+//    int target_square = getTarget(move);
+//    int color = getColor(move);
+//    int piece = getPiece(move);
+//    int pcolor = getPcolor(move);
+//    int promoted_piece = getPromoted(move);
+//
+//    // print move items
+//    std::cout << "source square: " << SquareNames[source_square] << '\n'
+//        << "target square: " << SquareNames[target_square] << '\n'
+//        << "piece color: " << color << '\n'
+//        << "piece: " << PieceSymbols[color][piece] << '\n'
+//        << "prom color: " << pcolor << '\n'
+//        << "promoted piece: " << PieceSymbols[pcolor][promoted_piece] << '\n'
+//        << "capture flag: " << isCapture(move) << '\n'
+//        << "double pawn push flag: " << isDoublePush(move) << '\n'
+//        << "enpassant flag: " << isEnPassant(move) << '\n'
+//        << "castling flag: " << isCastling(move) << '\n';
+//}
 
-    // print move items
-    std::cout << "source square: " << SquareNames[source_square] << '\n'
-        << "target square: " << SquareNames[target_square] << '\n'
-        << "piece color: " << color << '\n'
-        << "piece: " << PieceSymbols[color][piece] << '\n'
-        << "prom color: " << pcolor << '\n'
-        << "promoted piece: " << PieceSymbols[pcolor][promoted_piece] << '\n'
-        << "capture flag: " << isCapture(move) << '\n'
-        << "double pawn push flag: " << isDoublePush(move) << '\n'
-        << "enpassant flag: " << isEnPassant(move) << '\n'
-        << "castling flag: " << isCastling(move) << '\n';
+void printMove(Move move) {
+    const std::string& from = SquareNames[getSource(move)];
+    const std::string& to = SquareNames[getTarget(move)];
+    char promo = PromotedPieces[getPromoted(move)];
+
+    std::cout << from << to;
+    if (promo != ' ') std::cout << promo;
+    std::cout << '\n';
 }
 
 void Board::printMoves() const {
-    std::cout << "Generated " << moves.size() << " moves:\n";
+    std::cout << std::left
+        << "    "  // indent
+        << std::setw(10) << "Move"
+        << std::setw(10) << "Piece"
+        << std::setw(10) << "Capture"
+        << std::setw(10) << "Double"
+        << std::setw(10) << "EnPass"
+        << std::setw(10) << "Castling"
+        << '\n';
 
-    for (size_t i = 0; i < moves.size(); ++i) {
-        MoveList::Move move = moves[i];
-        std::cout << "Move " << i << ": 0x" << std::hex << move << "\n";
+    // Loop over moves in the list
+    for (size_t i = 0; i < moves.size(); ++i)
+    {
+        const Move move = moves[i];
+
+        const std::string& from = SquareNames[getSource(move)];
+        const std::string& to = SquareNames[getTarget(move)];
+        char promo = PromotedPieces[getPromoted(move)];
+        std::string piece = PieceSymbols[getColor(move)][getPiece(move)];
+
+        std::cout << "    "
+            << std::left << std::setw(10) << (from + to + (promo != ' ' ? std::string(1, promo) : " "))
+            << std::setw(10) << piece
+            << std::setw(10) << isCapture(move)
+            << std::setw(10) << isDoublePush(move)
+            << std::setw(10) << isEnPassant(move)
+            << std::setw(10) << isCastling(move)
+            << '\n';
     }
+
+    std::cout << "\nTotal number of moves: " << moves.size() << "\n\n";
 }
-
-// NEED TO UPDATE PRINTMOVE AND PRINTMOVES FUNCTIONS
-
 
 void Board::printAttackedSquares(Color side) {
     for (int rank = 7; rank >= 0; --rank) {
@@ -1143,6 +1177,9 @@ void Board::printOccupancyboards() {
     }
 }
 
+void Board::addMove(Move move) {
+    moves.add(move);
+}
 
 MoveList::MoveList() {
     moves.reserve(256);

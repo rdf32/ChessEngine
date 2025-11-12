@@ -117,6 +117,7 @@ public:
     // I/O methods
     void parseFEN(const std::string& fen);
     const MoveList& getMoveList() const;
+    void addMove(Move move);
 
     // debug helper methods
     void printPieceboards();

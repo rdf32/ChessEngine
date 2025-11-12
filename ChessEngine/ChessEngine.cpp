@@ -13,10 +13,12 @@
 
 int main()
 {   
-    //std::cout << "creating board 1" << std::endl;
-    //Board board;
-    //std::cout << "\n";
+    std::cout << "creating board 1" << std::endl;
+    Board board;
+    std::cout << "\n";
 
+    board.addMove(encodeMove(d7, e8, White, Bishop, White, Queen, false, false, false, true));
+    board.printMoves();
     //std::cout << "creating board 2" << std::endl;
     //Board board2;
     //std::cout << "\n";
@@ -63,8 +65,8 @@ int main()
         // create move
   /*  encodeMove(int source, int target, int color, int piece, int pcolor, int promoted, bool capture = false,
         bool doubleM = false, bool enpassant = false, bool castling = false)*/
-    int move = encodeMove(d7, e8, White, Pawn, White, Queen, true, false, false, false);
-    printMove(move);
+ /*   int move = encodeMove(d7, e8, White, Pawn, White, Queen, true, false, false, false);
+    printMove(move);*/
 
     return 0;
 }
