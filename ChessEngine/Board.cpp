@@ -1014,6 +1014,28 @@ void Board::generateMoves() {
     kingMoves(static_cast<Color>(side));
 }
 
+void Board::saveState() {
+    
+    // Save current state into previous state
+    std::memcpy(prev_pieceBitboards, pieceBitboards, sizeof(pieceBitboards));
+    std::memcpy(prev_occupancyBitboards, occupancyBitboards, sizeof(occupancyBitboards));
+
+    prev_side = side;
+    prev_enpassant = enpassant;
+    prev_castle = castle;
+}
+
+void Board::takeBack() {
+
+    // Restore previous state
+    std::memcpy(pieceBitboards, prev_pieceBitboards, sizeof(pieceBitboards));
+    std::memcpy(occupancyBitboards, prev_occupancyBitboards, sizeof(occupancyBitboards));
+
+    side = prev_side;
+    enpassant = prev_enpassant;
+    castle = prev_castle;
+}
+
 const MoveList& Board::getMoveList() const {
     return moves;
 }

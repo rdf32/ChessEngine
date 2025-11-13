@@ -24,13 +24,13 @@ enum PieceType {
     Pawn, Knight, Bishop, Rook, Queen, King
 };
 
+enum CastlingType {
+    wk = 1, wq = 2, bk = 4, bq = 8
+};
+
 struct Piece {
     PieceType type;
     Color color;
-};
-
-enum CastlingType {
-    wk = 1, wq = 2, bk = 4, bq = 8
 };
 
 struct MoveList {
@@ -106,6 +106,8 @@ public:
 
     void generateMoves();
     void resetMoves();
+    void saveState();
+    void takeBack();
 
 
     // initialization methods
@@ -131,17 +133,20 @@ public:
 
 private:
 
-    // pieceBitboards[color (white, black)][pieceType]
-    Bitboard pieceBitboards[2][6];
-
-    // occupancyBitboards[color (white, black, all)]
-    Bitboard occupancyBitboards[3];
-
     MoveList moves;
+    Bitboard pieceBitboards[2][6];
+    Bitboard occupancyBitboards[3];
 
     int side;
     int enpassant;
     int castle;
+
+    Bitboard prev_pieceBitboards[2][6];
+    Bitboard prev_occupancyBitboards[3];
+
+    int prev_side;
+    int prev_enpassant;
+    int prev_castle;
 };
 
 //binary move bits                               hexidecimal constants

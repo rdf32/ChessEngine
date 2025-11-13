@@ -19,8 +19,13 @@ int main()
 
     //board.addMove(encodeMove(d7, e8, White, Bishop, Queen, false, false, false, true));
     board.parseFEN(tricky_position);
-    board.generateMoves();
-    board.printMoves();
+    //board.generateMoves();
+    //board.printMoves();
+    board.saveState();
+
+    board.parseFEN(empty_board);
+    board.takeBack();
+    board.printBoard();
     //std::cout << "creating board 2" << std::endl;
     //Board board2;
     //std::cout << "\n";
