@@ -28,6 +28,8 @@ enum CastlingType {
     wk = 1, wq = 2, bk = 4, bq = 8
 };
 
+enum MoveMode { ALL_MOVES, CAPTURES_ONLY };
+
 struct Piece {
     PieceType type;
     Color color;
@@ -47,6 +49,33 @@ struct MoveList {
     Move& operator[](size_t i) noexcept;
 };
 
+class MoveStore {
+public:
+    MoveStore(Move move);
+
+    int getSource() const;
+    int getTarget() const;
+    int getColor() const;
+    int getPiece() const;
+    int getPromoted() const;
+    bool isCapture() const;
+    bool isDoublePush() const;
+    bool isEnPassant() const;
+    bool isCastling() const;
+
+
+private:
+    int source;
+    int target;
+    int color;
+    int piece;
+    int promoted;
+
+    bool capture;
+    bool doubleM;
+    bool enpassant;
+    bool castling;
+};
 // bit operations
 bool getBit(Bitboard bitboard, Square square);
 void setBit(Bitboard& bitboard, Square square);
@@ -56,20 +85,8 @@ int getLSBIndex(Bitboard bitboard);
 
 // magic bitboard methods
 Bitboard setOccupancy(int index, int numMaskBits, Bitboard attackMask);
-
 Move encodeMove(int source, int target, int color, int piece, int promoted, bool capture, bool doubleM, bool enpassant, bool castling);
-//void printMove(Move move);
-
-int getSource(Move m);
-int getTarget(Move m);
-int getColor(Move m);
-int getPiece(Move m);
-int getPromoted(Move m);
-
-bool isCapture(Move m);
-bool isDoublePush(Move m);
-bool isEnPassant(Move m);
-bool isCastling(Move m);
+void printMove(Move move);
 
 class Board
 {
@@ -96,7 +113,7 @@ public:
     Bitboard getQueenAttacks(int square, Bitboard occupancy) const;
 
     // attacking methods
-    bool isSquareAttacked(Square square, Color side);
+    bool isSquareAttacked(Square square, Color side) const;
     void pawnMoves(Color side);
     void knightMoves(Color side);
     void bishopMoves(Color side);
@@ -108,6 +125,7 @@ public:
     void resetMoves();
     void saveState();
     void takeBack();
+    bool makeMove(Move move, MoveMode mode);
 
 
     // initialization methods
@@ -128,7 +146,6 @@ public:
     void printBitboard(Bitboard bb);
     void printBoard() const;
     void printAttackedSquares(Color side);
-    void printMove(Move move) const;
     void printMoves() const;
 
 private:

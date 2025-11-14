@@ -26,6 +26,9 @@ int main()
     board.parseFEN(empty_board);
     board.takeBack();
     board.printBoard();
+
+    board.generateMoves();
+    board.printMoves();
     //std::cout << "creating board 2" << std::endl;
     //Board board2;
     //std::cout << "\n";
