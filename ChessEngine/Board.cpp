@@ -1,4 +1,3 @@
-#pragma once
 #include <cstdint>
 #include <iostream>
 #include <iomanip>
@@ -1000,8 +999,8 @@ void Board::generateMoves() {
 void Board::saveState() {
     
     // Save current state into previous state
-    std::memcpy(prev_pieceBitboards, pieceBitboards, sizeof(pieceBitboards));
-    std::memcpy(prev_occupancyBitboards, occupancyBitboards, sizeof(occupancyBitboards));
+    memcpy(prev_pieceBitboards, pieceBitboards, sizeof(pieceBitboards));
+    memcpy(prev_occupancyBitboards, occupancyBitboards, sizeof(occupancyBitboards));
 
     prev_side = side;
     prev_enpassant = enpassant;
@@ -1011,8 +1010,8 @@ void Board::saveState() {
 void Board::takeBack() {
 
     // Restore previous state
-    std::memcpy(pieceBitboards, prev_pieceBitboards, sizeof(pieceBitboards));
-    std::memcpy(occupancyBitboards, prev_occupancyBitboards, sizeof(occupancyBitboards));
+    memcpy(pieceBitboards, prev_pieceBitboards, sizeof(pieceBitboards));
+    memcpy(occupancyBitboards, prev_occupancyBitboards, sizeof(occupancyBitboards));
 
     side = prev_side;
     enpassant = prev_enpassant;
