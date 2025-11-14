@@ -1050,15 +1050,74 @@ bool Board::makeMove(Move move, MoveMode mode) {
         }
         
         if (m.isEnPassant()) {
-            int direction = (side == White) ?
+            int square_offset = (m.getColor() == White) ? -8 : 8;
+            clearBit(pieceBitboards[!m.getColor()][Pawn], static_cast<Square>(m.getTarget() + square_offset));
         }
-    
-    
-    
-    
-    
-    }
+        enpassant = no_sq;
+
+        if (m.isDoublePush()) {
+            int square_offset = (m.getColor() == White) ? -8 : 8;
+            enpassant = m.getTarget() + square_offset;
+        }
+
+        if (m.isCastling()) {
+            switch (m.getTarget())
+            {
+                // white castles king side
+            case (g1):
+                // move H rook
+                clearBit(pieceBitboards[White][Rook], h1);
+                setBit(pieceBitboards[White][Rook], f1);
+                break;
+
+                // white castles queen side
+            case (c1):
+                // move A rook
+                clearBit(pieceBitboards[White][Rook], a1);
+                setBit(pieceBitboards[White][Rook], d1);
+                break;
+
+                // black castles king side
+            case (g8):
+                // move H rook
+                clearBit(pieceBitboards[Black][Rook], h8);
+                setBit(pieceBitboards[Black][Rook], f8);
+                break;
+
+                // black castles queen side
+            case (c8):
+                // move A rook
+                clearBit(pieceBitboards[Black][Rook], a8);
+                setBit(pieceBitboards[Black][Rook], d8);
+                break;
+            }
+        }
+        // update castling rights
+        castle &= castling_rights[m.getSource()];
+        castle &= castling_rights[m.getTarget()];
         
+        // Set occupancy boards
+        memset(occupancyBitboards, 0, sizeof(occupancyBitboards));
+        for (int color = White; color <= Black; color++) {
+            for (int piece = Pawn; piece <= King; piece++) {
+                occupancyBitboards[color] |= pieceBitboards[color][piece];
+            }
+        }
+        occupancyBitboards[All] = occupancyBitboards[White] | occupancyBitboards[Black];
+
+        // make sure king of current side is not being attacked by the other side after this side's move
+        if (isSquareAttacked(static_cast<Square>(getLSBIndex(pieceBitboards[side][King])), static_cast<Color>(!side))) {
+            // take move back
+            takeBack();
+            // return illegal move
+            return false;
+        }
+        else {
+            // change side
+            side ^= 1;
+            return true;
+        }
+    }
 };
 
 const MoveList& Board::getMoveList() const {
