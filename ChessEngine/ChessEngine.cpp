@@ -1,6 +1,6 @@
 // ChessEngine.cpp : This file contains the 'main' function. Program execution begins and ends there.
-#pragma once
 #include <iostream>
+#include <windows.h>
 #include "Board.h"
 
 // FEN dedug positions
@@ -9,7 +9,38 @@
 #define tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
 #define killer_position "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
 #define cmk_position "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
+// get time in milliseconds
+int get_time_ms()
+{
+    return GetTickCount();
+}
 
+
+long nodes;
+static inline void perft_driver(Board& board, int depth)
+{
+    // reccursion escape condition
+    if (depth == 0)
+    {
+        // increment nodes count (count reached positions)
+        nodes++;
+        return;
+    }
+
+    // generate moves
+    board.generateMoves();
+    const MoveList& moves = board.getMoveList();
+    for (size_t i = 0; i < moves.size(); i++) {
+
+        Move move = moves[i];
+        board.saveState();
+        if (!board.makeMove(move, ALL_MOVES)) {
+            continue;
+        }
+        perft_driver(board, depth - 1);
+        board.takeBack();
+    }
+}
 
 int main()
 {   
@@ -20,11 +51,15 @@ int main()
     //board.addMove(encodeMove(d7, e8, White, Bishop, Queen, false, false, false, true));
     //board.parseFEN("r3k2r/p1ppRpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1 ");
     board.parseFEN(start_position);
+    int start = get_time_ms();
+    perft_driver(board, 4);
+    std::cout << "time taken to execute: " << get_time_ms() - start << std::endl;
+    std::cout << "nodes: " << nodes << "\n";
+
     //board.generateMoves();
     //board.printMoves();
-    board.generateMoves();
-    //board.printMoves();
-    const MoveList& moves = board.getMoveList();
+
+ /*   const MoveList& moves = board.getMoveList();
     std::cout << "number of moves: " << moves.size() << std::endl;
     for (size_t i = 0; i < moves.size(); i++) {
 
@@ -39,7 +74,7 @@ int main()
         board.takeBack();
         board.printBoard();
         getchar();
-    }
+    }*/
     //std::cout << "creating board 2" << std::endl;
     //Board board2;
     //std::cout << "\n";
