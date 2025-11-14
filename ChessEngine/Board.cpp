@@ -760,7 +760,7 @@ void Board::pawnMoves(Color side) {
                 // two squares ahead pawn move
                 if ((source_square >= start_rank_left && source_square <= start_rank_right) &&
                     !getBit(occupancyBitboards[All], static_cast<Square>(target_square + square_offset))) {
-                    addMove(encodeMove(source_square, target_square, side, Pawn, 0, false, true, false, false));
+                    addMove(encodeMove(source_square, target_square + square_offset, side, Pawn, 0, false, true, false, false));
                 }
             }
         }
