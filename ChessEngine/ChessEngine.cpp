@@ -18,17 +18,27 @@ int main()
     std::cout << "\n";
 
     //board.addMove(encodeMove(d7, e8, White, Bishop, Queen, false, false, false, true));
-    board.parseFEN(tricky_position);
+    board.parseFEN("r3k2r/p1ppRpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1 ");
     //board.generateMoves();
     //board.printMoves();
-    board.saveState();
-
-    board.parseFEN(empty_board);
-    board.takeBack();
-    board.printBoard();
-
     board.generateMoves();
-    board.printMoves();
+
+    const MoveList& moves = board.getMoveList();
+    std::cout << "number of moves: " << moves.size() << std::endl;
+    for (size_t i = 0; i < moves.size(); i++) {
+
+        Move move = moves[i];
+
+        board.saveState();
+        if (!board.makeMove(move, ALL_MOVES)) {
+            continue;
+        }
+        board.printBoard();
+        getchar();
+        board.takeBack();
+        board.printBoard();
+        getchar();
+    }
     //std::cout << "creating board 2" << std::endl;
     //Board board2;
     //std::cout << "\n";
