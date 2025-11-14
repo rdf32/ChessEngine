@@ -22,7 +22,7 @@ int main()
     //board.generateMoves();
     //board.printMoves();
     board.generateMoves();
-
+    board.printMoves();
     const MoveList& moves = board.getMoveList();
     std::cout << "number of moves: " << moves.size() << std::endl;
     for (size_t i = 0; i < moves.size(); i++) {
@@ -31,6 +31,7 @@ int main()
 
         board.saveState();
         if (!board.makeMove(move, ALL_MOVES)) {
+            std::cout << move << std::endl;
             continue;
         }
         board.printBoard();
