@@ -5,7 +5,7 @@
 class Logger {
 public:
     enum class Level {
-        ERROR = 0,
+        ERRORS = 0,
         WARNING = 1,
         INFO = 2,
         DEBUG = 3

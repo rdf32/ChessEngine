@@ -4,9 +4,10 @@
 #include <string>
 #include <sstream>
 #include <array>
+#include <windows.h>
 
-#include "Board.h"
-#include "Logger.h"
+#include "chess.h"
+#include "logger.h"
 
 // FEN dedug positions
 constexpr auto empty_board = "8/8/8/8/8/8/8/8 w - - ";
@@ -29,7 +30,7 @@ Logger logger(Logger::Level::INFO);
 
 const char* ColorNames[3] = { "White", "Black", "All" };
 const char* PieceTypeNames[6] = { "Pawn", "Knight", "Bishop", "Rook", "Queen", "King" };
-const std::array<char, 6> PromotedPieces = { ' ', 'k', 'b', 'r', 'q', ' '};
+const char* PromotedPieces[6] = { " ", "k", "b", "r", "q", " "};
 const char* SquareNames[64] = {
         "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
         "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
@@ -67,16 +68,15 @@ const std::array<Piece, 256> symbolToPiece = [] {
     }();
 
 // Bit masks
-constexpr uint32_t FROM_SQ_MASK = 0x00003F;
-constexpr uint32_t TO_SQ_MASK = 0x000FC0;
-constexpr uint32_t COLOR_MASK = 0x001000;
-constexpr uint32_t PIECE_MASK = 0x00E000;
-constexpr uint32_t PCOLOR_MASK = 0x010000;
-constexpr uint32_t PROMO_MASK = 0x0E0000;
-constexpr uint32_t CAPTURE_FLAG = 0x100000;
-constexpr uint32_t DOUBLE_FLAG = 0x200000;
-constexpr uint32_t ENPASSANT_FLAG = 0x400000;
-constexpr uint32_t CASTLE_FLAG = 0x800000;
+constexpr uint32_t FROM_SQ_MASK     = 0x00003F;      // bits 0–5
+constexpr uint32_t TO_SQ_MASK       = 0x000FC0;      // bits 6–11
+constexpr uint32_t COLOR_MASK       = 0x001000;      // bit 16
+constexpr uint32_t PIECE_MASK       = 0x00E000;      // bits 12–15
+constexpr uint32_t PROMO_MASK       = 0x0F0000;      // bits 16–19
+constexpr uint32_t CAPTURE_FLAG     = 0x100000;      // bit 20
+constexpr uint32_t DOUBLE_FLAG      = 0x200000;      // bit 21
+constexpr uint32_t ENPASSANT_FLAG   = 0x400000;      // bit 22
+constexpr uint32_t CASTLE_FLAG      = 0x800000;
 
 // castling rights update constants
 const int castling_rights[64] = {
@@ -89,6 +89,27 @@ const int castling_rights[64] = {
     15, 15, 15, 15, 15, 15, 15, 15,
     7,  15, 15, 15,  3, 15, 15, 11
 };
+
+Bitboard pieceBitboards[2][6];
+Bitboard occupancyBitboards[3];
+
+int side;
+int enpassant;
+int castling;
+
+// preserve board state
+#define saveState()                                                        \
+    Bitboard prev_pieceBitboards[2][6], prev_occupancyBitboards[3];         \
+    int prev_side, prev_enpassant, prev_castling;                           \
+    memcpy(prev_pieceBitboards, pieceBitboards, 96);                        \
+    memcpy(prev_occupancyBitboards, occupancyBitboards, 24);                \
+    prev_side = side, prev_enpassant = enpassant, prev_castling = castling; \
+
+// restore board state
+#define takeBack()                                                         \
+    memcpy(pieceBitboards, prev_pieceBitboards, 96);                        \
+    memcpy(occupancyBitboards, prev_occupancyBitboards, 24);                \
+    side = prev_side, enpassant = prev_enpassant, castling = prev_castling; \
 
 // pseudo random number state
 unsigned int random_state = 1804289383;
@@ -147,8 +168,8 @@ int countBits(Bitboard bitboard) {
     int count = 0;
 
     while (bitboard) {
-        bitboard &= bitboard - 1;
         count++;
+        bitboard &= bitboard - 1;
     }
     return count;
 }
@@ -362,16 +383,16 @@ static const Bitboard bishop_magic_numbers[64] = {
 
 };
 
-Board::Board() {   
-    // initialize piece bitboards to 0  
-    initTables();
-    // initialize attack tables for leaper pieces (Pawn, Knight, King)
-    initLeaperPieces();
-    // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
-    initSliderPieces();
-}
+// Board() {   
+//     // initialize piece bitboards to 0  
+//     initTables();
+//     // initialize attack tables for leaper pieces (Pawn, Knight, King)
+//     initLeaperPieces();
+//     // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
+//     initSliderPieces();
+// }
 
-Bitboard Board::maskPawnAttacks(Color color, Square square) const {
+Bitboard maskPawnAttacks(Color color, Square square) {
 
     Bitboard bitboard = 0ULL;
     Bitboard attacks = 0ULL;
@@ -391,7 +412,7 @@ Bitboard Board::maskPawnAttacks(Color color, Square square) const {
     return attacks;
 }
 
-Bitboard Board::maskKnightAttacks(Square square) const {
+Bitboard maskKnightAttacks(Square square) {
 
     Bitboard bitboard = 0ULL;
     Bitboard attacks = 0ULL;
@@ -410,7 +431,7 @@ Bitboard Board::maskKnightAttacks(Square square) const {
     return attacks;
 }
 
-Bitboard Board::maskKingAttacks(Square square) const {
+Bitboard maskKingAttacks(Square square) {
 
     Bitboard bitboard = 0ULL;
     Bitboard attacks = 0ULL;
@@ -429,7 +450,7 @@ Bitboard Board::maskKingAttacks(Square square) const {
     return attacks;
 }
 
-Bitboard Board::maskBishopAttacks(Square square) const {
+Bitboard maskBishopAttacks(Square square) {
 
     Bitboard attacks = 0ULL;
 
@@ -445,7 +466,7 @@ Bitboard Board::maskBishopAttacks(Square square) const {
     return attacks;
 }
 
-Bitboard Board::maskRookAttacks(Square square) const {
+Bitboard maskRookAttacks(Square square) {
 
     Bitboard attacks = 0ULL;
 
@@ -460,8 +481,7 @@ Bitboard Board::maskRookAttacks(Square square) const {
 
     return attacks;
 }
-
-Bitboard Board::dynamicBishopAttacks(Square square, Bitboard blocker) const {
+Bitboard dynamicBishopAttacks(Square square, Bitboard blocker) {
 
     Bitboard attacks = 0ULL;
 
@@ -471,25 +491,25 @@ Bitboard Board::dynamicBishopAttacks(Square square, Bitboard blocker) const {
 
     for (rank = target_rank + 1, file = target_file + 1; rank <= 7 && file <= 7; rank++, file++) { 
         setBit(attacks, static_cast<Square>(rank * 8 + file));
-        if (1ULL << (rank * 8 + file) & blocker) { break; }
+        if ((1ULL << (rank * 8 + file)) & blocker) { break; }
     }
     for (rank = target_rank + 1, file = target_file - 1; rank <= 7 && file >= 0; rank++, file--) { 
         setBit(attacks, static_cast<Square>(rank * 8 + file));
-        if (1ULL << (rank * 8 + file) & blocker) { break; }
+        if ((1ULL << (rank * 8 + file)) & blocker) { break; }
     }
     for (rank = target_rank - 1, file = target_file + 1; rank >= 0 && file <= 7; rank--, file++) { 
         setBit(attacks, static_cast<Square>(rank * 8 + file));
-        if (1ULL << (rank * 8 + file) & blocker) { break; }
+        if ((1ULL << (rank * 8 + file)) & blocker) { break; }
     }
     for (rank = target_rank - 1, file = target_file - 1; rank >= 0 && file >= 0; rank--, file--) { 
         setBit(attacks, static_cast<Square>(rank * 8 + file));
-        if (1ULL << (rank * 8 + file) & blocker) { break; } // these could be getBits calls instead of written out
+        if ((1ULL << (rank * 8 + file)) & blocker) { break; } // these could be getBits calls instead of written out
     }
 
     return attacks;
 }
 
-Bitboard Board::dynamicRookAttacks(Square square, Bitboard blocker) const {
+Bitboard dynamicRookAttacks(Square square, Bitboard blocker) {
 
     Bitboard attacks = 0ULL;
 
@@ -499,26 +519,26 @@ Bitboard Board::dynamicRookAttacks(Square square, Bitboard blocker) const {
 
     for (rank = target_rank + 1; rank <= 7; rank++) { 
         setBit(attacks, static_cast<Square>(rank * 8 + target_file));
-        if (1ULL << (rank * 8 + target_file) & blocker) { break; }
+        if ((1ULL << (rank * 8 + target_file)) & blocker) { break; }
     }
     for (rank = target_rank - 1; rank >= 0; rank--) { 
         setBit(attacks, static_cast<Square>(rank * 8 + target_file));
-        if (1ULL << (rank * 8 + target_file) & blocker) { break; }
+        if ((1ULL << (rank * 8 + target_file)) & blocker) { break; }
     }
     for (file = target_file + 1; file <= 7; file++) { 
         setBit(attacks, static_cast<Square>(target_rank * 8 + file));
-        if (1ULL << (target_rank * 8 + file) & blocker) { break; }
+        if ((1ULL << (target_rank * 8 + file)) & blocker) { break; }
     }
     for (file = target_file - 1; file >= 0; file--) { 
         setBit(attacks, static_cast<Square>(target_rank * 8 + file));
-        if (1ULL << (target_rank * 8 + file) & blocker) { break; }
+        if ((1ULL << (target_rank * 8 + file)) & blocker) { break; }
     }
 
     return attacks;
 }
 
 // initialization methods //
-void Board::initTables() {
+void initTables() {
     for (int piece = Pawn; piece <= King; piece++) {
         pieceBitboards[White][piece] = 0ULL;
         pieceBitboards[Black][piece] = 0ULL;
@@ -529,7 +549,7 @@ void Board::initTables() {
     }
 }
 
-void Board::initLeaperPieces() const {
+void initLeaperPieces() {
     for (int square = a1; square <= h8; square++) {
 
         // initialize pawn attacks pawnAttacks[color][square]
@@ -558,7 +578,7 @@ void Board::initLeaperPieces() const {
     }
 }
 
-void Board::initSliderPieces() const {
+void initSliderPieces() {
 
     for (int square = a1; square <= h8; square++) {
         if (!bishop_masks[square]) {
@@ -604,7 +624,7 @@ void Board::initSliderPieces() const {
 }
 
 // get bishop attacks
-Bitboard Board::getBishopAttacks(int square, Bitboard occupancy) const {
+Bitboard getBishopAttacks(int square, Bitboard occupancy) {
     // get bishop attacks assuming current board occupancy
     occupancy &= bishop_masks[square];
     occupancy *= bishop_magic_numbers[square];
@@ -615,7 +635,7 @@ Bitboard Board::getBishopAttacks(int square, Bitboard occupancy) const {
 }
 
 // get rook attacks
-Bitboard Board::getRookAttacks(int square, Bitboard occupancy) const {
+Bitboard getRookAttacks(int square, Bitboard occupancy) {
     // get rook attacks assuming current board occupancy
     occupancy &= rook_masks[square];
     occupancy *= rook_magic_numbers[square];
@@ -625,7 +645,7 @@ Bitboard Board::getRookAttacks(int square, Bitboard occupancy) const {
     return rook_attacks[square][occupancy];
 }
 
-Bitboard Board::getQueenAttacks(int square, Bitboard occupancy) const {
+Bitboard getQueenAttacks(int square, Bitboard occupancy) {
 
     Bitboard diagonalAttacks = getBishopAttacks(square, occupancy);
     Bitboard straightAttacks = getRookAttacks(square, occupancy);
@@ -633,14 +653,14 @@ Bitboard Board::getQueenAttacks(int square, Bitboard occupancy) const {
     return diagonalAttacks | straightAttacks;
 }
 
-void Board::parseFEN(const std::string& fen) {
+void parseFEN(const std::string& fen) {
 
     side = White;
     enpassant = no_sq;
-    castle = 0;
+    castling = 0;
 
-    memset(pieceBitboards, 0, sizeof(pieceBitboards));
-    memset(occupancyBitboards, 0, sizeof(occupancyBitboards));
+    memset(pieceBitboards, 0ULL, sizeof(pieceBitboards));
+    memset(occupancyBitboards, 0ULL, sizeof(occupancyBitboards));
 
     std::string boardT, sideT, castleT, enpassantT;
     int halfmoveclock, fullmovenumber;
@@ -673,10 +693,10 @@ void Board::parseFEN(const std::string& fen) {
     // Parse castling rights
     for (char c : castleT) {
         switch (c) {
-        case 'K': castle |= wk; break;
-        case 'Q': castle |= wq; break;
-        case 'k': castle |= bk; break;
-        case 'q': castle |= bq; break;
+        case 'K': castling |= wk; break;
+        case 'Q': castling |= wq; break;
+        case 'k': castling |= bk; break;
+        case 'q': castling |= bq; break;
         case '-': break;
         default: break;
         }
@@ -698,12 +718,15 @@ void Board::parseFEN(const std::string& fen) {
             occupancyBitboards[color] |= pieceBitboards[color][piece];
         }
     }
-    occupancyBitboards[All] = occupancyBitboards[White] | occupancyBitboards[Black];
+    occupancyBitboards[All] |= occupancyBitboards[White];
+    occupancyBitboards[All] |= occupancyBitboards[Black];
 
     printBoard();
 }
 
-bool Board::isSquareAttacked(Square square, Color side) const {
+bool isSquareAttacked(Square square, Color side) {
+
+    // std::cout << "Checking if square " << square << " is attacked by side " << (side == White ? "White" : "Black") << std::endl;
     // check if pawn attacks - reverse thinking -- if black pawn attack hits white pawn -- then that sqaure is attacked by white pawn
     if (pawnAttacks[!side][square] & pieceBitboards[side][Pawn]) { return true; }
 
@@ -725,7 +748,7 @@ bool Board::isSquareAttacked(Square square, Color side) const {
     return false;
 }
 
-void Board::pawnMoves(Color side) {
+void pawnMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -748,18 +771,18 @@ void Board::pawnMoves(Color side) {
         if (!getBit(occupancyBitboards[All], static_cast<Square>(target_square))) {
             // pawn promotion
             if (source_square >= promo_rank_left && source_square <= promo_rank_right) {
-                addMove(encodeMove(source_square, target_square, side, Pawn, Queen, false, false, false, false));
-                addMove(encodeMove(source_square, target_square, side, Pawn, Rook, false, false, false, false));
-                addMove(encodeMove(source_square, target_square, side, Pawn, Bishop, false, false, false, false));
-                addMove(encodeMove(source_square, target_square, side, Pawn, Knight, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, Queen, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, Rook, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, Bishop, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, Knight, false, false, false, false));
             } 
             else {
                 // one square ahead pawn move
-                addMove(encodeMove(source_square, target_square, side, Pawn, 0, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, 0, false, false, false, false));
                 // two squares ahead pawn move
                 if ((source_square >= start_rank_left && source_square <= start_rank_right) &&
                     !getBit(occupancyBitboards[All], static_cast<Square>(target_square + square_offset))) {
-                    addMove(encodeMove(source_square, target_square + square_offset, side, Pawn, 0, false, true, false, false));
+                    moveList.add(encodeMove(source_square, target_square + square_offset, side, Pawn, 0, false, true, false, false));
                 }
             }
         }
@@ -769,14 +792,14 @@ void Board::pawnMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // pawn promotion
             if (source_square >= promo_rank_left && source_square <= promo_rank_right) {
-                addMove(encodeMove(source_square, target_square, side, Pawn, Queen, true, false, false, false));
-                addMove(encodeMove(source_square, target_square, side, Pawn, Rook, true, false, false, false));
-                addMove(encodeMove(source_square, target_square, side, Pawn, Bishop, true, false, false, false));
-                addMove(encodeMove(source_square, target_square, side, Pawn, Knight, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, Queen, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, Rook, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, Bishop, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, Knight, true, false, false, false));
             }
             else {
                 // one square ahead pawn move
-                addMove(encodeMove(source_square, target_square, side, Pawn, 0, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Pawn, 0, true, false, false, false));
             }
             // remove attacked piece from pawn attacks
             clearBit(attacks, static_cast<Square>(target_square));
@@ -789,7 +812,7 @@ void Board::pawnMoves(Color side) {
             if (enpassant_attacks) {
                 // init enpassant capture target square
                 int target_enpassant = getLSBIndex(enpassant_attacks);
-                addMove(encodeMove(source_square, target_square, side, Pawn, 0, true, false, true, false));
+                moveList.add(encodeMove(source_square, target_enpassant, side, Pawn, 0, true, false, true, false));
             }
         }
         // remove pawn from current pawns on board
@@ -797,7 +820,7 @@ void Board::pawnMoves(Color side) {
     }
 }
 
-void Board::kingMoves(Color side) {
+void kingMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -813,11 +836,11 @@ void Board::kingMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                addMove(encodeMove(source_square, target_square, side, King, 0, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, King, 0, false, false, false, false));
             }
             else {
                 // captures
-                addMove(encodeMove(source_square, target_square, side, King, 0, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, King, 0, true, false, false, false));
             }
 
             clearBit(attacks, static_cast<Square>(target_square));
@@ -826,54 +849,54 @@ void Board::kingMoves(Color side) {
     }
     // castling moves
     if (side == White) {
-        if (castle & wk) {
+        if (castling & wk) {
             // make sure square between king and king's rook are empty
             if (!getBit(occupancyBitboards[All], f1) && !getBit(occupancyBitboards[All], g1))
             {
                 // make sure king and the f1 squares are not under attacks
                 if (!isSquareAttacked(e1, Black) && !isSquareAttacked(f1, Black)) {
-                    addMove(encodeMove(e1, g1, side, King, 0, false, false, false, true));
+                    moveList.add(encodeMove(e1, g1, side, King, 0, false, false, false, true));
                     //printf("e1g1  castling move\n");
                 }
             }
         }
-        if (castle & wq) {
+        if (castling & wq) {
             // make sure square between king and queen's rook are empty
             if (!getBit(occupancyBitboards[All], d1) && !getBit(occupancyBitboards[All], c1) && !getBit(occupancyBitboards[All], b1)) {
                 // make sure king and the d1 squares are not under attacks
                 if (!isSquareAttacked(e1, Black) && !isSquareAttacked(d1, Black)) {
-                    addMove(encodeMove(e1, c1, side, King, 0, false, false, false, true));
+                    moveList.add(encodeMove(e1, c1, side, King, 0, false, false, false, true));
                 }
             }
         }
     }
     else {
     
-        if (castle & bk) {
+        if (castling & bk) {
             // make sure square between king and king's rook are empty
             if (!getBit(occupancyBitboards[All], f8) && !getBit(occupancyBitboards[All], g8))
             {
                 // make sure king and the f8 squares are not under attacks
                 if (!isSquareAttacked(e8, White) && !isSquareAttacked(f8, White)) {
-                    addMove(encodeMove(e8, g8, side, King, 0, false, false, false, true));
+                    moveList.add(encodeMove(e8, g8, side, King, 0, false, false, false, true));
                 }
             }
         }
-        if (castle & bq)
+        if (castling & bq)
         {
             // make sure square between king and queen's rook are empty
             if (!getBit(occupancyBitboards[All], d8) && !getBit(occupancyBitboards[All], c8) && !getBit(occupancyBitboards[All], b8))
             {
                 // make sure king and the d8 squares are not under attacks
                 if (!isSquareAttacked(e8, White) && !isSquareAttacked(d8, White)) {
-                    addMove(encodeMove(e8, c8, side, King, 0, false, false, false, true));
+                    moveList.add(encodeMove(e8, c8, side, King, 0, false, false, false, true));
                 }
             }
         }
     }
 }
 
-void Board::knightMoves(Color side) {
+void knightMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -889,11 +912,11 @@ void Board::knightMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                addMove(encodeMove(source_square, target_square, side, Knight, 0, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Knight, 0, false, false, false, false));
             }
             else {
                 // captures
-                addMove(encodeMove(source_square, target_square, side, Knight, 0, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Knight, 0, true, false, false, false));
             }
             clearBit(attacks, static_cast<Square>(target_square));
         }
@@ -901,7 +924,7 @@ void Board::knightMoves(Color side) {
     }
 }
 
-void Board::bishopMoves(Color side) {
+void bishopMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -917,11 +940,11 @@ void Board::bishopMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                addMove(encodeMove(source_square, target_square, side, Bishop, 0, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Bishop, 0, false, false, false, false));
             }
             else {
                 // captures
-                addMove(encodeMove(source_square, target_square, side, Bishop, 0, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Bishop, 0, true, false, false, false));
             }
             clearBit(attacks, static_cast<Square>(target_square));
         }
@@ -929,7 +952,7 @@ void Board::bishopMoves(Color side) {
     }
 }
 
-void Board::rookMoves(Color side) {
+void rookMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -945,11 +968,11 @@ void Board::rookMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                addMove(encodeMove(source_square, target_square, side, Rook, 0, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Rook, 0, false, false, false, false));
             }
             else {
                 // captures
-                addMove(encodeMove(source_square, target_square, side, Rook, 0, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Rook, 0, true, false, false, false));
             }
             clearBit(attacks, static_cast<Square>(target_square));
         }
@@ -957,7 +980,7 @@ void Board::rookMoves(Color side) {
     }
 }
 
-void Board::queenMoves(Color side) {
+void queenMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -973,11 +996,11 @@ void Board::queenMoves(Color side) {
             target_square = getLSBIndex(attacks);
             // quiet move
             if (!getBit(occupancyBitboards[!side], static_cast<Square>(target_square))) {
-                addMove(encodeMove(source_square, target_square, side, Queen, 0, false, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Queen, 0, false, false, false, false));
             }
             else {
                 // captures
-                addMove(encodeMove(source_square, target_square, side, Queen, 0, true, false, false, false));
+                moveList.add(encodeMove(source_square, target_square, side, Queen, 0, true, false, false, false));
             }
             clearBit(attacks, static_cast<Square>(target_square));
         }
@@ -985,40 +1008,24 @@ void Board::queenMoves(Color side) {
     }
 }
 
-void Board::generateMoves() {
+MoveList generateMoves() {
 
-    resetMoves();
-    pawnMoves(static_cast<Color>(side));
-    knightMoves(static_cast<Color>(side));
-    bishopMoves(static_cast<Color>(side));
-    rookMoves(static_cast<Color>(side));
-    queenMoves(static_cast<Color>(side));
-    kingMoves(static_cast<Color>(side));
+    MoveList moves;
+    pawnMoves(static_cast<Color>(side), moves);
+    knightMoves(static_cast<Color>(side), moves);
+    bishopMoves(static_cast<Color>(side), moves);
+    rookMoves(static_cast<Color>(side), moves);
+    queenMoves(static_cast<Color>(side), moves);
+    kingMoves(static_cast<Color>(side), moves);
+    return moves;
 }
 
-void Board::saveState() {
-    
-    // Save current state into previous state
-    memcpy(prev_pieceBitboards, pieceBitboards, sizeof(pieceBitboards));
-    memcpy(prev_occupancyBitboards, occupancyBitboards, sizeof(occupancyBitboards));
+bool makeMove(Move move, MoveMode mode) {
+    //preserve board state
+    // Bitboard prev_pieceBitboards[2][6];
+    // Bitboard prev_occupancyBitboards[3];
+    // int prev_side, prev_enpassant, prev_castling;
 
-    prev_side = side;
-    prev_enpassant = enpassant;
-    prev_castle = castle;
-}
-
-void Board::takeBack() {
-
-    // Restore previous state
-    memcpy(pieceBitboards, prev_pieceBitboards, sizeof(pieceBitboards));
-    memcpy(occupancyBitboards, prev_occupancyBitboards, sizeof(occupancyBitboards));
-
-    side = prev_side;
-    enpassant = prev_enpassant;
-    castle = prev_castle;
-}
-
-bool Board::makeMove(Move move, MoveMode mode) {
     // parse move
     MoveStore m(move);
 
@@ -1031,9 +1038,15 @@ bool Board::makeMove(Move move, MoveMode mode) {
         }
     }
     else {
-        // preserve board state
-        saveState();
 
+        // Save current state into previous state
+        // memcpy(prev_pieceBitboards, pieceBitboards, sizeof(pieceBitboards));
+        // memcpy(prev_occupancyBitboards, occupancyBitboards, sizeof(occupancyBitboards));
+
+        // prev_side = side;
+        // prev_enpassant = enpassant;
+        // prev_castling = castling;
+        saveState();
         // make move
         clearBit(pieceBitboards[m.getColor()][m.getPiece()], static_cast<Square>(m.getSource()));
         setBit(pieceBitboards[m.getColor()][m.getPiece()], static_cast<Square>(m.getTarget()));
@@ -1056,7 +1069,7 @@ bool Board::makeMove(Move move, MoveMode mode) {
             clearBit(pieceBitboards[m.getColor()][Pawn], static_cast<Square>(m.getTarget()));
 
             // set up promoted piece on chess board
-            clearBit(pieceBitboards[m.getColor()][m.getPromoted()], static_cast<Square>(m.getTarget()));
+            setBit(pieceBitboards[m.getColor()][m.getPromoted()], static_cast<Square>(m.getTarget()));
         }
         
         if (m.isEnPassant()) {
@@ -1103,36 +1116,48 @@ bool Board::makeMove(Move move, MoveMode mode) {
             }
         }
         // update castling rights
-        castle &= castling_rights[m.getSource()];
-        castle &= castling_rights[m.getTarget()];
+        castling &= castling_rights[m.getSource()];
+        castling &= castling_rights[m.getTarget()];
         
         // Set occupancy boards
-        memset(occupancyBitboards, 0, sizeof(occupancyBitboards));
+        memset(occupancyBitboards, 0ULL, sizeof(occupancyBitboards));
         for (int color = White; color <= Black; color++) {
             for (int piece = Pawn; piece <= King; piece++) {
                 occupancyBitboards[color] |= pieceBitboards[color][piece];
             }
         }
-        occupancyBitboards[All] = occupancyBitboards[White] | occupancyBitboards[Black];
-
+        occupancyBitboards[All] |= occupancyBitboards[White];
+        occupancyBitboards[All] |= occupancyBitboards[Black];
+        
+        // std::cout << side << " made move: " << std::endl;
+        // change side
+        side ^= 1;
+        // std::cout << side << " changed to : " << std::endl;
         // make sure king of current side is not being attacked by the other side after this side's move
-        if (isSquareAttacked(static_cast<Square>(getLSBIndex(pieceBitboards[side][King])), static_cast<Color>(!side))) {
+        if (isSquareAttacked(static_cast<Square>(getLSBIndex(pieceBitboards[!side][King])), static_cast<Color>(side))) {
             // take move back
+            // std::cout << !side << " king attacked by " << side << " after move!" << std::endl;
+            // Restore previous state
+            // memcpy(pieceBitboards, prev_pieceBitboards, sizeof(pieceBitboards));
+            // memcpy(occupancyBitboards, prev_occupancyBitboards, sizeof(occupancyBitboards));
+
+            // side = prev_side;
+            // enpassant = prev_enpassant;
+            // castling = prev_castling;
             takeBack();
             // return illegal move
             return false;
         }
         else {
-            // change side
-            side ^= 1;
+
             return true;
         }
     }
 };
 
-const MoveList& Board::getMoveList() const {
-    return moves;
-}
+// const MoveList& getMoveList() const {
+//     return moves;
+// }
 
 MoveStore::MoveStore(Move move)
     : source(move& FROM_SQ_MASK),
@@ -1160,19 +1185,40 @@ bool MoveStore::isCastling() const { return castling; }
 
 // helper methods // 
 void printMove(Move move) {
-
+    std::cout << std::left
+    << "    "  // indent
+    << std::setw(10) << "Move"
+    << std::setw(10) << "Piece"
+    << std::setw(10) << "Capture"
+    << std::setw(10) << "Double"
+    << std::setw(10) << "EnPass"
+    << std::setw(10) << "Castling"
+    << '\n';
     MoveStore m(move);
 
+    // const std::string& from = SquareNames[m.getSource()];
+    // const std::string& to = SquareNames[m.getTarget()];
+    // char promo = PromotedPieces[m.getPromoted()];
+
+    // std::cout << from << to;
+    // if (promo != ' ') std::cout << promo;
+    // std::cout << '\n';
     const std::string& from = SquareNames[m.getSource()];
     const std::string& to = SquareNames[m.getTarget()];
-    char promo = PromotedPieces[m.getPromoted()];
+    const std::string& promo = PromotedPieces[m.getPromoted()];
+    std::string piece = PieceSymbols[m.getColor()][m.getPiece()];
 
-    std::cout << from << to;
-    if (promo != ' ') std::cout << promo;
-    std::cout << '\n';
+    std::cout << "    "
+        << std::left << std::setw(10) << (from + to + (promo != " " ? promo : " "))
+        << std::setw(10) << piece
+        << std::setw(10) << m.isCapture()
+        << std::setw(10) << m.isDoublePush()
+        << std::setw(10) << m.isEnPassant()
+        << std::setw(10) << m.isCastling()
+        << '\n';
 }
 
-void Board::printMoves() const {
+void printMoves(const MoveList& moves) {
     std::cout << std::left
         << "    "  // indent
         << std::setw(10) << "Move"
@@ -1191,11 +1237,11 @@ void Board::printMoves() const {
 
         const std::string& from = SquareNames[m.getSource()];
         const std::string& to = SquareNames[m.getTarget()];
-        char promo = PromotedPieces[m.getPromoted()];
+        const std::string& promo = PromotedPieces[m.getPromoted()];
         std::string piece = PieceSymbols[m.getColor()][m.getPiece()];
-
+        std::cout << m.getPromoted() << std::endl;
         std::cout << "    "
-            << std::left << std::setw(10) << (from + to + (promo != ' ' ? std::string(1, promo) : " "))
+            << std::left << std::setw(10) << (from + to + (promo != " " ? promo : " "))
             << std::setw(10) << piece
             << std::setw(10) << m.isCapture()
             << std::setw(10) << m.isDoublePush()
@@ -1207,7 +1253,7 @@ void Board::printMoves() const {
     std::cout << "\nTotal number of moves: " << moves.size() << "\n\n";
 }
 
-void Board::printAttackedSquares(Color side) {
+void printAttackedSquares(Color side) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";
         for (int file = 0; file < 8; ++file) {
@@ -1220,7 +1266,7 @@ void Board::printAttackedSquares(Color side) {
     std::cout << "    a b c d e f g h\n";
 }
 
-void Board::printBoard() const {
+void printBoard() {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";
         for (int file = 0; file < 8; ++file) {
@@ -1250,10 +1296,10 @@ void Board::printBoard() const {
 
     // print castling rights
     std::cout << "  Castling:  " << 
-        (castle & wk ? 'K' : '-') << 
-        (castle & wq ? 'Q' : '-') << 
-        (castle & bk ? 'k' : '-') << 
-        (castle & bq ? 'q' : '-') << std::endl;
+        (castling & wk ? 'K' : '-') << 
+        (castling & wq ? 'Q' : '-') << 
+        (castling & bk ? 'k' : '-') << 
+        (castling & bq ? 'q' : '-') << std::endl;
 
 }
 
@@ -1276,7 +1322,7 @@ Move encodeMove(int source, int target, int color, int piece, int promoted, bool
     return m;
 }
 
-void Board::printBitboard(Bitboard bb) {
+void printBitboard(Bitboard bb) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";
         for (int file = 0; file < 8; ++file) {
@@ -1292,7 +1338,7 @@ void Board::printBitboard(Bitboard bb) {
     std::cout << "\nBitboard value: " << static_cast<uint64_t>(bb) << "\n\n";
 }
 
-void Board::printPieceboards() {
+void printPieceboards() {
     // print out initial boards
     for (int color = White; color <= Black; color++) {
         for (int piece = Pawn; piece <= King; piece++) {
@@ -1303,7 +1349,7 @@ void Board::printPieceboards() {
     }
 }
 
-void Board::printOccupancyboards() {
+void printOccupancyboards() {
     for (int color = White; color <= All; color++) {
         Bitboard bitboard = occupancyBitboards[color];
         std::cout << ColorNames[color] << " " << " has occupancy bitboard: " << "\n";
@@ -1311,40 +1357,113 @@ void Board::printOccupancyboards() {
     }
 }
 
-void Board::addMove(Move move) {
-    moves.add(move);
-}
-
-void Board::resetMoves() {
-    moves.clear();
-}
-
+// MoveList (fixed-size array implementation)
 MoveList::MoveList() {
-    moves.reserve(256);
+    count = 0;
 }
 
-void MoveList::add(Move move) {
-    moves.push_back(move);
-}
-
-size_t MoveList::size() const noexcept {
-    return moves.size();
-}
-
-bool MoveList::empty() const noexcept {
-    return moves.empty();
+void MoveList::add(Move move) noexcept {
+    if (count < 256) {
+        moves[count++] = move;
+    }
 }
 
 void MoveList::clear() noexcept {
-    moves.clear();
+    count = 0;
 }
 
-MoveList::Move MoveList::operator[](size_t i) const noexcept {
+size_t MoveList::size() const noexcept {
+    return count;
+}
+
+bool MoveList::empty() const noexcept {
+    return count == 0;
+}
+
+Move MoveList::operator[](size_t i) const noexcept {
     return moves[i];
 }
 
-MoveList::Move& MoveList::operator[](size_t i) noexcept {
+Move& MoveList::operator[](size_t i) noexcept {
     return moves[i];
 }
 
+// get time in milliseconds
+uint64_t get_time_ms()
+{
+    return GetTickCount64();
+}
+
+uint64_t perft(int depth)
+{
+    if (depth == 0)
+        return 1ULL;
+
+    uint64_t nodes = 0ULL;
+ 
+    // generate moves for this board state
+    MoveList moveList = generateMoves();
+    // printBoard();
+    // printMoves(moveList);
+
+    for (size_t i = 0; i < moveList.size(); i++) {
+        Move move = moveList[i];
+        
+        saveState();
+        // makeMove mutates the board directly
+        if (!makeMove(move, MoveMode::ALL_MOVES))
+            continue;
+  
+        // recurse with mutated board
+        nodes += perft(depth - 1);
+        // board is restored automatically because we pass by value
+        takeBack();
+    }
+
+    return nodes;
+}
+
+int main()
+{   
+    std::cout << "initializing tables" << std::endl;
+    // initialize piece bitboards to 0  
+    initTables();
+    // initialize attack tables for leaper pieces (Pawn, Knight, King)
+    initLeaperPieces();
+    // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
+    initSliderPieces();
+    std::cout << "\n";
+
+    parseFEN(start_position);
+    int start = get_time_ms();
+    uint64_t nodes = perft(5);
+    std::cout << "time taken to execute: " << get_time_ms() - start << std::endl;
+    std::cout << "nodes: " << nodes << "\n";
+    
+
+    // parseFEN("8/8/8/8/8/8/8/8 w KQkq e6 0 1");
+    // parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1 ");
+    // MoveList movesList = generateMoves();
+    // printMoves(movesList);
+    
+    // std::cout << "number of moves: " << movesList.size() << std::endl;
+    // for (size_t i = 0; i < movesList.size(); i++) {
+
+    //     Move move = movesList[i];
+    //     saveState();
+
+    //     if (!makeMove(move, ALL_MOVES)) {
+    //         std::cout << "illegal move" << std::endl;
+    //         continue;
+    //     }
+    //     printMove(move);
+    //     printBoard();
+    //     getchar();
+    //     takeBack();
+    //     printBoard();
+    //     getchar();
+    // }
+
+    return 0;
+}
 

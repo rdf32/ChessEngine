@@ -1,13 +1,13 @@
 #include <iostream>
 #include <string>
-#include "Logger.h"
+#include "logger.h"
 
 void Logger::setLevel(Level level) {
     currentLevel = level;
 }
 
 void Logger::error(const std::string& message) const {
-    if (currentLevel >= Level::ERROR)
+    if (currentLevel >= Level::ERRORS)
         std::cout << "[ERROR] " << message << std::endl;
 }
 
