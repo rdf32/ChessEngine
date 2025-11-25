@@ -6,8 +6,8 @@
 #include <array>
 #include <windows.h>
 
-#include "chess.h"
-#include "logger.h"
+#include "chess.hpp"
+#include "logger.hpp"
 
 // FEN dedug positions
 constexpr auto empty_board = "8/8/8/8/8/8/8/8 w - - ";
@@ -624,7 +624,7 @@ void initSliderPieces() {
 }
 
 // get bishop attacks
-Bitboard getBishopAttacks(int square, Bitboard occupancy) {
+static inline Bitboard getBishopAttacks(int square, Bitboard occupancy) {
     // get bishop attacks assuming current board occupancy
     occupancy &= bishop_masks[square];
     occupancy *= bishop_magic_numbers[square];
@@ -635,7 +635,7 @@ Bitboard getBishopAttacks(int square, Bitboard occupancy) {
 }
 
 // get rook attacks
-Bitboard getRookAttacks(int square, Bitboard occupancy) {
+static inline Bitboard getRookAttacks(int square, Bitboard occupancy) {
     // get rook attacks assuming current board occupancy
     occupancy &= rook_masks[square];
     occupancy *= rook_magic_numbers[square];
@@ -645,7 +645,7 @@ Bitboard getRookAttacks(int square, Bitboard occupancy) {
     return rook_attacks[square][occupancy];
 }
 
-Bitboard getQueenAttacks(int square, Bitboard occupancy) {
+static inline Bitboard getQueenAttacks(int square, Bitboard occupancy) {
 
     Bitboard diagonalAttacks = getBishopAttacks(square, occupancy);
     Bitboard straightAttacks = getRookAttacks(square, occupancy);
@@ -1394,7 +1394,7 @@ uint64_t get_time_ms()
     return GetTickCount64();
 }
 
-uint64_t perft(int depth)
+static inline uint64_t perft_driver(int depth)
 {
     if (depth == 0)
         return 1ULL;
@@ -1422,6 +1422,116 @@ uint64_t perft(int depth)
 
     return nodes;
 }
+
+// perft test
+void perft_test(int depth)
+{
+    printf("\n     Performance test\n\n");
+    
+    MoveList moveList = generateMoves();
+    
+    // init start time
+    long start = get_time_ms();
+    
+    // loop over generated moves
+    for (size_t i = 0; i < moveList.size(); i++) {
+        Move move = moveList[i];
+        MoveStore m(move);
+        // preserve board state
+        saveState();
+        
+        // make move
+        if (!makeMove(move, MoveMode::ALL_MOVES))
+            continue;
+        
+        // cummulative nodes
+        long cummulative_nodes = nodes;
+        
+        // call perft driver recursively
+        perft_driver(depth - 1);
+        
+        // old nodes
+        long old_nodes = nodes - cummulative_nodes;
+        
+        // take back
+        takeBack();
+        
+        // print move
+        printf("     move: %s%s%c  nodes: %ld\n", SquareNames[m.getSource()],
+                                                 SquareNames[m.getTarget()],
+                                                 m.getPromoted() ? PromotedPieces[m.getPromoted()] : ' ',
+                                                 old_nodes);
+    }
+    
+    // print results
+    printf("\n    Depth: %d\n", depth);
+    printf("    Nodes: %ld\n", nodes);
+    printf("     Time: %ld\n\n", get_time_ms() - start);
+}
+
+// // parse user/GUI move string input (e.g. "e7e8q")
+// int parse_move(char *move_string)
+// {
+//     // create move list instance
+//     moves move_list[1];
+    
+//     // generate moves
+//     generate_moves(move_list);
+    
+//     // parse source square
+//     int source_square = (move_string[0] - 'a') + (8 - (move_string[1] - '0')) * 8;
+    
+//     // parse target square
+//     int target_square = (move_string[2] - 'a') + (8 - (move_string[3] - '0')) * 8;
+    
+//     // loop over the moves within a move list
+//     for (int move_count = 0; move_count < move_list->count; move_count++)
+//     {
+//         // init move
+//         int move = move_list->moves[move_count];
+        
+//         // make sure source & target squares are available within the generated move
+//         if (source_square == get_move_source(move) && target_square == get_move_target(move))
+//         {
+//             // init promoted piece
+//             int promoted_piece = get_move_promoted(move);
+            
+//             // promoted piece is available
+//             if (promoted_piece)
+//             {
+//                 // promoted to queen
+//                 if ((promoted_piece == Q || promoted_piece == q) && move_string[4] == 'q')
+//                     // return legal move
+//                     return move;
+                
+//                 // promoted to rook
+//                 else if ((promoted_piece == R || promoted_piece == r) && move_string[4] == 'r')
+//                     // return legal move
+//                     return move;
+                
+//                 // promoted to bishop
+//                 else if ((promoted_piece == B || promoted_piece == b) && move_string[4] == 'b')
+//                     // return legal move
+//                     return move;
+                
+//                 // promoted to knight
+//                 else if ((promoted_piece == N || promoted_piece == n) && move_string[4] == 'n')
+//                     // return legal move
+//                     return move;
+                
+//                 // continue the loop on possible wrong promotions (e.g. "e7e8f")
+//                 continue;
+//             }
+            
+//             // return legal move
+//             return move;
+//         }
+//     }
+    
+//     // return illegal move
+//     return 0;
+// }
+
 
 int main()
 {   

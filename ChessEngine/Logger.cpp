@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include "logger.h"
+#include "logger.hpp"
 
 void Logger::setLevel(Level level) {
     currentLevel = level;
@@ -26,3 +26,4 @@ void Logger::debug(const std::string& message) const {
         std::cout << "[DEBUG] " << message << std::endl;
 }
 
+// for logging -- could be expanded

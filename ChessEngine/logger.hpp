@@ -25,3 +25,5 @@ private:
 };
 
 extern Logger logger;
+
+// for logging -- could be expanded

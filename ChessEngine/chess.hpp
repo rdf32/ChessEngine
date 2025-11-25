@@ -7,7 +7,7 @@
 using Bitboard = uint64_t;
 using Move = uint32_t;
 
-enum Square {
+enum Square : uint8_t {
     a1, b1, c1, d1, e1, f1, g1, h1,
     a2, b2, c2, d2, e2, f2, g2, h2,
     a3, b3, c3, d3, e3, f3, g3, h3,
@@ -18,19 +18,19 @@ enum Square {
     a8, b8, c8, d8, e8, f8, g8, h8, no_sq
 };
 
-enum Color {
+enum Color : uint8_t {
     White, Black, All
 };
 
-enum PieceType {
+enum PieceType : uint8_t {
     Pawn, Knight, Bishop, Rook, Queen, King
 };
 
-enum CastlingType {
+enum CastlingType : uint8_t{
     wk = 1, wq = 2, bk = 4, bq = 8
 };
 
-enum MoveMode { ALL_MOVES, CAPTURES_ONLY };
+enum MoveMode : uint8_t { ALL_MOVES, CAPTURES_ONLY };
 
 struct Piece {
     PieceType type;
@@ -88,6 +88,30 @@ void clearBit(Bitboard& bitboard, Square square);
 int countBits(Bitboard bitboard);
 int getLSBIndex(Bitboard bitboard);
 
+// #ifdef _MSC_VER
+// #define FORCEINLINE __forceinline
+// #else
+// #define FORCEINLINE inline __attribute__((always_inline))
+// #endif
+
+// FORCEINLINE int countBits(Bitboard b) noexcept {
+// #if defined(_MSC_VER)
+//     return __popcnt64(b);
+// #else
+//     return __builtin_popcountll(b);
+// #endif
+// }
+
+// FORCEINLINE int getLSBIndex(Bitboard b) noexcept {
+// #if defined(_MSC_VER)
+//     unsigned long idx;
+//     _BitScanForward64(&idx, b);
+//     return (int)idx;
+// #else
+//     return __builtin_ctzll(b);
+// #endif
+// }
+
 // magic bitboard methods
 Bitboard setOccupancy(int index, int numMaskBits, Bitboard attackMask);
 Move encodeMove(int source, int target, int color, int piece, int promoted, bool capture, bool doubleM, bool enpassant, bool castling);
@@ -138,70 +162,6 @@ void printBoard();
 void printAttackedSquares(Color side);
 void printMoves(const MoveList& moves);
 
-// class Board
-// {
-// public:
-
-//     Board();
-//     virtual ~Board() = default;
-
-//     // bitmask methods
-//     Bitboard maskPawnAttacks(Color color, Square square) const;
-//     Bitboard maskKnightAttacks(Square square) const;
-//     Bitboard maskBishopAttacks(Square square) const;
-//     Bitboard maskRookAttacks(Square square) const;
-//     Bitboard maskKingAttacks(Square square) const;
-
-
-//     // on the fly attack creation for sliding pieces
-//     Bitboard dynamicBishopAttacks(Square square, Bitboard blocker) const;
-//     Bitboard dynamicRookAttacks(Square square, Bitboard blocker) const;
-
-//     //Bitboard findMagicNumber(int square, int relevant_bits, int bishop);
-//     Bitboard getBishopAttacks(int square, Bitboard occupancy) const;
-//     Bitboard getRookAttacks(int square, Bitboard occupancy) const;
-//     Bitboard getQueenAttacks(int square, Bitboard occupancy) const;
-
-//     // attacking methods
-//     bool isSquareAttacked(Square square, Color side) const;
-//     void pawnMoves(Color side, MoveList& moveList);
-//     void knightMoves(Color side, MoveList& moveList);
-//     void bishopMoves(Color side, MoveList& moveList);
-//     void rookMoves(Color side, MoveList& moveList);
-//     void queenMoves(Color side, MoveList& moveList);
-//     void kingMoves(Color side, MoveList& moveList);
-
-//     MoveList generateMoves();
-//     bool makeMove(Move move, MoveMode mode);
-
-
-//     // initialization methods
-//     void initTables();
-//     void initLeaperPieces() const;
-//     void initSliderPieces() const;
-
-//     // I/O methods
-//     void parseFEN(const std::string& fen);
-
-//     // debug helper methods
-//     void printPieceboards();
-//     void printOccupancyboards();
-//     void printBitboard(Bitboard bb);
-//     void printBoard() const;
-//     void printAttackedSquares(Color side);
-//     void printMoves(const MoveList& moves) const;
-
-// private:
-
-//     // MoveList moves;
-//     Bitboard pieceBitboards[2][6];
-//     Bitboard occupancyBitboards[3];
-
-//     int side;
-//     int enpassant;
-//     int castling;
-
-// };
 
 //binary move bits                               hexidecimal constants
 //
