@@ -624,7 +624,7 @@ void initSliderPieces() {
 }
 
 // get bishop attacks
-static inline Bitboard getBishopAttacks(int square, Bitboard occupancy) {
+inline Bitboard getBishopAttacks(int square, Bitboard occupancy) {
     // get bishop attacks assuming current board occupancy
     occupancy &= bishop_masks[square];
     occupancy *= bishop_magic_numbers[square];
@@ -635,7 +635,7 @@ static inline Bitboard getBishopAttacks(int square, Bitboard occupancy) {
 }
 
 // get rook attacks
-static inline Bitboard getRookAttacks(int square, Bitboard occupancy) {
+inline Bitboard getRookAttacks(int square, Bitboard occupancy) {
     // get rook attacks assuming current board occupancy
     occupancy &= rook_masks[square];
     occupancy *= rook_magic_numbers[square];
@@ -645,7 +645,7 @@ static inline Bitboard getRookAttacks(int square, Bitboard occupancy) {
     return rook_attacks[square][occupancy];
 }
 
-static inline Bitboard getQueenAttacks(int square, Bitboard occupancy) {
+inline Bitboard getQueenAttacks(int square, Bitboard occupancy) {
 
     Bitboard diagonalAttacks = getBishopAttacks(square, occupancy);
     Bitboard straightAttacks = getRookAttacks(square, occupancy);
@@ -1415,7 +1415,7 @@ static inline uint64_t perft_driver(int depth)
             continue;
   
         // recurse with mutated board
-        nodes += perft(depth - 1);
+        nodes += perft_driver(depth - 1);
         // board is restored automatically because we pass by value
         takeBack();
     }
@@ -1423,51 +1423,51 @@ static inline uint64_t perft_driver(int depth)
     return nodes;
 }
 
-// perft test
-void perft_test(int depth)
-{
-    printf("\n     Performance test\n\n");
+// // perft test
+// void perft_test(int depth)
+// {
+//     printf("\n     Performance test\n\n");
     
-    MoveList moveList = generateMoves();
+//     MoveList moveList = generateMoves();
     
-    // init start time
-    long start = get_time_ms();
+//     // init start time
+//     long start = get_time_ms();
     
-    // loop over generated moves
-    for (size_t i = 0; i < moveList.size(); i++) {
-        Move move = moveList[i];
-        MoveStore m(move);
-        // preserve board state
-        saveState();
+//     // loop over generated moves
+//     for (size_t i = 0; i < moveList.size(); i++) {
+//         Move move = moveList[i];
+//         MoveStore m(move);
+//         // preserve board state
+//         saveState();
         
-        // make move
-        if (!makeMove(move, MoveMode::ALL_MOVES))
-            continue;
+//         // make move
+//         if (!makeMove(move, MoveMode::ALL_MOVES))
+//             continue;
         
-        // cummulative nodes
-        long cummulative_nodes = nodes;
+//         // cummulative nodes
+//         long cummulative_nodes = nodes;
         
-        // call perft driver recursively
-        perft_driver(depth - 1);
+//         // call perft driver recursively
+//         uint64_t node = perft_driver(depth - 1);
         
-        // old nodes
-        long old_nodes = nodes - cummulative_nodes;
+//         // old nodes
+//         long old_nodes = nodes - cummulative_nodes;
         
-        // take back
-        takeBack();
+//         // take back
+//         takeBack();
         
-        // print move
-        printf("     move: %s%s%c  nodes: %ld\n", SquareNames[m.getSource()],
-                                                 SquareNames[m.getTarget()],
-                                                 m.getPromoted() ? PromotedPieces[m.getPromoted()] : ' ',
-                                                 old_nodes);
-    }
+//         // print move
+//         printf("     move: %s%s%c  nodes: %ld\n", SquareNames[m.getSource()],
+//                                                  SquareNames[m.getTarget()],
+//                                                  m.getPromoted() ? PromotedPieces[m.getPromoted()] : ' ',
+//                                                  old_nodes);
+//     }
     
-    // print results
-    printf("\n    Depth: %d\n", depth);
-    printf("    Nodes: %ld\n", nodes);
-    printf("     Time: %ld\n\n", get_time_ms() - start);
-}
+//     // print results
+//     printf("\n    Depth: %d\n", depth);
+//     printf("    Nodes: %ld\n", nodes);
+//     printf("     Time: %ld\n\n", get_time_ms() - start);
+// }
 
 // // parse user/GUI move string input (e.g. "e7e8q")
 // int parse_move(char *move_string)
@@ -1546,7 +1546,7 @@ int main()
 
     parseFEN(start_position);
     int start = get_time_ms();
-    uint64_t nodes = perft(5);
+    uint64_t nodes = perft_driver(6);
     std::cout << "time taken to execute: " << get_time_ms() - start << std::endl;
     std::cout << "nodes: " << nodes << "\n";
     
@@ -1577,3 +1577,5 @@ int main()
     return 0;
 }
 
+
+// g++ ../*.cpp -O3 -march=native -flto -fno-exceptions -fno-rtti -std=c++17 -DNDEBUG -DUSE_POPCNT -DUSE_SSE41 -DUSE_BMI2
