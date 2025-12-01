@@ -383,15 +383,6 @@ static const Bitboard bishop_magic_numbers[64] = {
 
 };
 
-// Board() {   
-//     // initialize piece bitboards to 0  
-//     initTables();
-//     // initialize attack tables for leaper pieces (Pawn, Knight, King)
-//     initLeaperPieces();
-//     // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
-//     initSliderPieces();
-// }
-
 Bitboard maskPawnAttacks(Color color, Square square) {
 
     Bitboard bitboard = 0ULL;
@@ -1019,11 +1010,6 @@ MoveList generateMoves() {
 }
 
 bool makeMove(Move move, MoveMode mode) {
-    //preserve board state
-    // Bitboard prev_pieceBitboards[2][6];
-    // Bitboard prev_occupancyBitboards[3];
-    // int prev_side, prev_enpassant, prev_castling;
-
     // parse move
     MoveStore m(move);
 
@@ -1139,10 +1125,6 @@ bool makeMove(Move move, MoveMode mode) {
     }
 };
 
-// const MoveList& getMoveList() const {
-//     return moves;
-// }
-
 MoveStore::MoveStore(Move move)
     : source(move& FROM_SQ_MASK),
     target((move& TO_SQ_MASK) >> 6),
@@ -1153,8 +1135,7 @@ MoveStore::MoveStore(Move move)
     doubleM(move& DOUBLE_FLAG),
     enpassant(move& ENPASSANT_FLAG),
     castling(move& CASTLE_FLAG)
-{
-}
+{}
 
 int MoveStore::getSource() const { return  source; }
 int MoveStore::getTarget() const { return target; }
