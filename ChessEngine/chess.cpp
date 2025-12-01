@@ -1519,8 +1519,6 @@ Move parse_move(const char *move_string) {
             return move;
         }
     }
-    // return illegal move
-    std::cout << "No legal move found for: " << move_string << std::endl;
     return 0;
 }
 
