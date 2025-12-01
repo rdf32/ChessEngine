@@ -720,8 +720,6 @@ void parseFEN(const std::string& fen) {
     }
     occupancyBitboards[All] |= occupancyBitboards[White];
     occupancyBitboards[All] |= occupancyBitboards[Black];
-
-    printBoard();
 }
 
 bool isSquareAttacked(Square square, Color side) {
@@ -1040,12 +1038,6 @@ bool makeMove(Move move, MoveMode mode) {
     else {
 
         // Save current state into previous state
-        // memcpy(prev_pieceBitboards, pieceBitboards, sizeof(pieceBitboards));
-        // memcpy(prev_occupancyBitboards, occupancyBitboards, sizeof(occupancyBitboards));
-
-        // prev_side = side;
-        // prev_enpassant = enpassant;
-        // prev_castling = castling;
         saveState();
         // make move
         clearBit(pieceBitboards[m.getColor()][m.getPiece()], static_cast<Square>(m.getSource()));
@@ -1136,14 +1128,6 @@ bool makeMove(Move move, MoveMode mode) {
         // make sure king of current side is not being attacked by the other side after this side's move
         if (isSquareAttacked(static_cast<Square>(getLSBIndex(pieceBitboards[!side][King])), static_cast<Color>(side))) {
             // take move back
-            // std::cout << !side << " king attacked by " << side << " after move!" << std::endl;
-            // Restore previous state
-            // memcpy(pieceBitboards, prev_pieceBitboards, sizeof(pieceBitboards));
-            // memcpy(occupancyBitboards, prev_occupancyBitboards, sizeof(occupancyBitboards));
-
-            // side = prev_side;
-            // enpassant = prev_enpassant;
-            // castling = prev_castling;
             takeBack();
             // return illegal move
             return false;
