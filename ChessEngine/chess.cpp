@@ -1423,114 +1423,106 @@ static inline uint64_t perft_driver(int depth)
     return nodes;
 }
 
-// // perft test
-// void perft_test(int depth)
-// {
-//     printf("\n     Performance test\n\n");
-    
-//     MoveList moveList = generateMoves();
-    
-//     // init start time
-//     long start = get_time_ms();
-    
-//     // loop over generated moves
-//     for (size_t i = 0; i < moveList.size(); i++) {
-//         Move move = moveList[i];
-//         MoveStore m(move);
-//         // preserve board state
-//         saveState();
-        
-//         // make move
-//         if (!makeMove(move, MoveMode::ALL_MOVES))
-//             continue;
-        
-//         // cummulative nodes
-//         long cummulative_nodes = nodes;
-        
-//         // call perft driver recursively
-//         uint64_t node = perft_driver(depth - 1);
-        
-//         // old nodes
-//         long old_nodes = nodes - cummulative_nodes;
-        
-//         // take back
-//         takeBack();
-        
-//         // print move
-//         printf("     move: %s%s%c  nodes: %ld\n", SquareNames[m.getSource()],
-//                                                  SquareNames[m.getTarget()],
-//                                                  m.getPromoted() ? PromotedPieces[m.getPromoted()] : ' ',
-//                                                  old_nodes);
-//     }
-    
-//     // print results
-//     printf("\n    Depth: %d\n", depth);
-//     printf("    Nodes: %ld\n", nodes);
-//     printf("     Time: %ld\n\n", get_time_ms() - start);
-// }
+void perft_test(int depth)
+{
+    printf("\n     Performance test\n\n");
 
-// // parse user/GUI move string input (e.g. "e7e8q")
-// int parse_move(char *move_string)
-// {
-//     // create move list instance
-//     moves move_list[1];
-    
-//     // generate moves
-//     generate_moves(move_list);
-    
-//     // parse source square
-//     int source_square = (move_string[0] - 'a') + (8 - (move_string[1] - '0')) * 8;
-    
-//     // parse target square
-//     int target_square = (move_string[2] - 'a') + (8 - (move_string[3] - '0')) * 8;
-    
-//     // loop over the moves within a move list
-//     for (int move_count = 0; move_count < move_list->count; move_count++)
-//     {
-//         // init move
-//         int move = move_list->moves[move_count];
+    MoveList moveList = generateMoves();
+
+    uint64_t total_nodes = 0;
+
+    // init start time
+    long start = get_time_ms();
+
+    // loop over generated moves
+    for (size_t i = 0; i < moveList.size(); i++) {
+
+        Move move = moveList[i];
+        MoveStore m(move);
+
+        saveState();
+
+        // make move
+        if (!makeMove(move, MoveMode::ALL_MOVES)) {
+            takeBack();
+            continue;
+        }
+
+        // call perft driver recursively
+        uint64_t nodes = perft_driver(depth - 1);
+
+        takeBack();
+
+        total_nodes += nodes;
+
+        // print move
+        printf("     move: %s%s%s  nodes: %llu\n",
+               SquareNames[m.getSource()],
+               SquareNames[m.getTarget()],
+               m.getPromoted() ? PromotedPieces[m.getPromoted()] : " ",
+               (unsigned long long)nodes);
+    }
+
+    // print summary
+    printf("\n    Depth: %d\n", depth);
+    printf("    Nodes: %llu\n", (unsigned long long)total_nodes);
+    printf("     Time: %ld ms\n\n", get_time_ms() - start);
+}
+
+// parse user/GUI move string input (e.g. "e7e8q")
+Move parse_move(const char *move_string) {
+
+    MoveList moveList = generateMoves();
+    // parse source square
+    int source_square = (move_string[0] - 'a') + (move_string[1] - '1') * 8;
+
+    // parse target square
+    int target_square = (move_string[2] - 'a') + (move_string[3] - '1') * 8;
+
+    // loop over generated moves
+    for (size_t i = 0; i < moveList.size(); i++) {
+
+        Move move = moveList[i];
+        MoveStore m(move);
         
-//         // make sure source & target squares are available within the generated move
-//         if (source_square == get_move_source(move) && target_square == get_move_target(move))
-//         {
-//             // init promoted piece
-//             int promoted_piece = get_move_promoted(move);
+        // make sure source & target squares are available within the generated move
+        if (source_square == m.getSource() && target_square == m.getTarget()) {
+            // init promoted piece
+            int promoted_piece = m.getPromoted();
             
-//             // promoted piece is available
-//             if (promoted_piece)
-//             {
-//                 // promoted to queen
-//                 if ((promoted_piece == Q || promoted_piece == q) && move_string[4] == 'q')
-//                     // return legal move
-//                     return move;
+            // promoted piece is available
+            if (promoted_piece) {
+                // promoted to queen
+                if (promoted_piece == Queen && move_string[4] == 'q')
+                    // return legal move
+                    return move;
                 
-//                 // promoted to rook
-//                 else if ((promoted_piece == R || promoted_piece == r) && move_string[4] == 'r')
-//                     // return legal move
-//                     return move;
+                // promoted to rook
+                else if (promoted_piece == Rook && move_string[4] == 'r')
+                    // return legal move
+                    return move;
                 
-//                 // promoted to bishop
-//                 else if ((promoted_piece == B || promoted_piece == b) && move_string[4] == 'b')
-//                     // return legal move
-//                     return move;
+                // promoted to bishop
+                else if (promoted_piece == Bishop && move_string[4] == 'b')
+                    // return legal move
+                    return move;
                 
-//                 // promoted to knight
-//                 else if ((promoted_piece == N || promoted_piece == n) && move_string[4] == 'n')
-//                     // return legal move
-//                     return move;
+                // promoted to knight
+                else if (promoted_piece == Knight && move_string[4] == 'n')
+                    // return legal move
+                    return move;
                 
-//                 // continue the loop on possible wrong promotions (e.g. "e7e8f")
-//                 continue;
-//             }
-            
-//             // return legal move
-//             return move;
-//         }
-//     }
-    
-//     // return illegal move
-//     return 0;
-// }
+                // continue the loop on possible wrong promotions (e.g. "e7e8f")
+                continue;
+            }
+            // return legal move
+            return move;
+        }
+    }
+    // return illegal move
+    std::cout << "No legal move found for: " << move_string << std::endl;
+    return 0;
+}
 
 
 int main()
@@ -1544,11 +1536,32 @@ int main()
     initSliderPieces();
     std::cout << "\n";
 
-    parseFEN(start_position);
-    int start = get_time_ms();
-    uint64_t nodes = perft_driver(6);
-    std::cout << "time taken to execute: " << get_time_ms() - start << std::endl;
-    std::cout << "nodes: " << nodes << "\n";
+    // parse fen
+    parseFEN("r3k2r/p11pqpb1/bn2pnp1/2pPN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1 ");
+    printBoard();
+
+    // parse movestring
+    Move move = parse_move("d5c6");
+    
+    // if move is legal
+    if (move)
+    {
+        // make it on board
+        makeMove(move, ALL_MOVES);
+        printBoard();
+    }
+    
+    // otherwise
+    else
+        // print error
+        std::cout << "illegal move!" << std::endl;
+
+    // parseFEN(start_position);
+    // perft_test(6);
+    // int start = get_time_ms();
+    // uint64_t nodes = perft_driver(6);
+    // std::cout << "time taken to execute: " << get_time_ms() - start << std::endl;
+    // std::cout << "nodes: " << nodes << "\n";
     
 
     // parseFEN("8/8/8/8/8/8/8/8 w KQkq e6 0 1");
