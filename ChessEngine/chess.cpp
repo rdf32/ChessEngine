@@ -1499,28 +1499,28 @@ int main()
     initSliderPieces();
     std::cout << "\n";
 
-    // parse fen
-    parseFEN("r3k2r/p11pqpb1/bn2pnp1/2pPN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1 ");
-    printBoard();
+    // // parse fen
+    // parseFEN("r3k2r/p11pqpb1/bn2pnp1/2pPN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1 ");
+    // printBoard();
 
-    // parse movestring
-    Move move = parse_move("d5c6");
+    // // parse movestring
+    // Move move = parse_move("d5c6");
     
-    // if move is legal
-    if (move)
-    {
-        // make it on board
-        makeMove(move, ALL_MOVES);
-        printBoard();
-    }
+    // // if move is legal
+    // if (move)
+    // {
+    //     // make it on board
+    //     makeMove(move, ALL_MOVES);
+    //     printBoard();
+    // }
     
-    // otherwise
-    else
-        // print error
-        std::cout << "illegal move!" << std::endl;
+    // // otherwise
+    // else
+    //     // print error
+    //     std::cout << "illegal move!" << std::endl;
 
-    // parseFEN(start_position);
-    // perft_test(6);
+    parseFEN(start_position);
+    perft_test(6);
     // int start = get_time_ms();
     // uint64_t nodes = perft_driver(6);
     // std::cout << "time taken to execute: " << get_time_ms() - start << std::endl;
