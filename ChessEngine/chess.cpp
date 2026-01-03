@@ -90,13 +90,6 @@ const int castling_rights[64] = {
     7,  15, 15, 15,  3, 15, 15, 11
 };
 
-Bitboard pieceBitboards[2][6];
-Bitboard occupancyBitboards[3];
-
-int side;
-int enpassant;
-int castling;
-
 // preserve board state
 #define saveState()                                                        \
     Bitboard prev_pieceBitboards[2][6], prev_occupancyBitboards[3];         \
@@ -528,8 +521,258 @@ Bitboard dynamicRookAttacks(Square square, Bitboard blocker) {
     return attacks;
 }
 
+// get bishop attacks
+inline Bitboard getBishopAttacks(int square, Bitboard occupancy) {
+    // get bishop attacks assuming current board occupancy
+    occupancy &= bishop_masks[square];
+    occupancy *= bishop_magic_numbers[square];
+    occupancy >>= 64 - relevantBitcountBishop[square];
+
+    // return bishop attacks
+    return bishop_attacks[square][occupancy];
+}
+
+// get rook attacks
+inline Bitboard getRookAttacks(int square, Bitboard occupancy) {
+    // get rook attacks assuming current board occupancy
+    occupancy &= rook_masks[square];
+    occupancy *= rook_magic_numbers[square];
+    occupancy >>= 64 - relevantBitcountRook[square];
+
+    // return rook attacks
+    return rook_attacks[square][occupancy];
+}
+
+inline Bitboard getQueenAttacks(int square, Bitboard occupancy) {
+
+    Bitboard diagonalAttacks = getBishopAttacks(square, occupancy);
+    Bitboard straightAttacks = getRookAttacks(square, occupancy);
+
+    return diagonalAttacks | straightAttacks;
+}
+
+MoveStore::MoveStore(Move move)
+    : source(move& FROM_SQ_MASK),
+    target((move& TO_SQ_MASK) >> 6),
+    color((move& COLOR_MASK) >> 12),
+    piece((move& PIECE_MASK) >> 13),
+    promoted((move& PROMO_MASK) >> 16),
+    capture(move& CAPTURE_FLAG),
+    doubleM(move& DOUBLE_FLAG),
+    enpassant(move& ENPASSANT_FLAG),
+    castling(move& CASTLE_FLAG)
+{}
+
+int MoveStore::getSource() const { return  source; }
+int MoveStore::getTarget() const { return target; }
+int MoveStore::getColor() const { return color; }
+int MoveStore::getPiece() const { return piece; }
+int MoveStore::getPromoted() const { return promoted; }
+
+bool MoveStore::isCapture() const { return capture; }
+bool MoveStore::isDoublePush() const { return doubleM; }
+bool MoveStore::isEnPassant() const { return enpassant; }
+bool MoveStore::isCastling() const { return castling; }
+
+// Example: create a move
+Move encodeMove(int source, int target, int color, int piece, int promoted, bool capture = false,
+    bool doubleM = false, bool enpassant = false, bool castling = false) {
+
+    Move m = 0;
+    m |= source;
+    m |= (target << 6);
+    m |= (color << 12);
+    m |= (piece << 13);
+    m |= (promoted << 16);
+
+    if (capture) m |= CAPTURE_FLAG;
+    if (doubleM) m |= DOUBLE_FLAG;
+    if (enpassant) m |= ENPASSANT_FLAG;
+    if (castling) m |= CASTLE_FLAG;
+
+    return m;
+}
+
+// MoveList (fixed-size array implementation)
+MoveList::MoveList() {
+    count = 0;
+}
+
+void MoveList::add(Move move) noexcept {
+    if (count < 256) {
+        moves[count++] = move;
+    }
+}
+
+void MoveList::clear() noexcept {
+    count = 0;
+}
+
+size_t MoveList::size() const noexcept {
+    return count;
+}
+
+bool MoveList::empty() const noexcept {
+    return count == 0;
+}
+
+Move MoveList::operator[](size_t i) const noexcept {
+    return moves[i];
+}
+
+Move& MoveList::operator[](size_t i) noexcept {
+    return moves[i];
+}
+
+// get time in milliseconds
+uint64_t get_time_ms()
+{
+    return GetTickCount64();
+}
+
+uint64_t Board::perft_driver(int depth)
+{
+    if (depth == 0)
+        return 1ULL;
+
+    uint64_t nodes = 0ULL;
+ 
+    // generate moves for this board state
+    MoveList moveList = generateMoves();
+    // printBoard();
+    // printMoves(moveList);
+
+    for (size_t i = 0; i < moveList.size(); i++) {
+        Move move = moveList[i];
+        
+        saveState();
+        // makeMove mutates the board directly
+        if (!makeMove(move, MoveMode::ALL_MOVES))
+            continue;
+  
+        // recurse with mutated board
+        nodes += perft_driver(depth - 1);
+        // board is restored automatically because we pass by value
+        takeBack();
+    }
+
+    return nodes;
+}
+
+void Board::perft_test(int depth)
+{
+    printf("\n     Performance test\n\n");
+
+    MoveList moveList = generateMoves();
+    uint64_t total_nodes = 0;
+
+    // init start time
+    long start = get_time_ms();
+
+    // loop over generated moves
+    for (size_t i = 0; i < moveList.size(); i++) {
+
+        Move move = moveList[i];
+        MoveStore m(move);
+
+        saveState();
+
+        // make move
+        if (!makeMove(move, MoveMode::ALL_MOVES)) {
+            takeBack();
+            continue;
+        }
+
+        // call perft driver recursively
+        uint64_t nodes = perft_driver(depth - 1);
+
+        takeBack();
+
+        total_nodes += nodes;
+
+        // print move
+        printf("     move: %s%s%s  nodes: %llu\n",
+               SquareNames[m.getSource()],
+               SquareNames[m.getTarget()],
+               m.getPromoted() ? PromotedPieces[m.getPromoted()] : " ",
+               (unsigned long long)nodes);
+    }
+
+    // print summary
+    printf("\n    Depth: %d\n", depth);
+    printf("    Nodes: %llu\n", (unsigned long long)total_nodes);
+    printf("     Time: %ld ms\n\n", get_time_ms() - start);
+}
+
+// parse user/GUI move string input (e.g. "e7e8q")
+Move Board::parseMove(const char *move_string) {
+
+    MoveList moveList = generateMoves();
+    // parse source square
+    int source_square = (move_string[0] - 'a') + (move_string[1] - '1') * 8;
+
+    // parse target square
+    int target_square = (move_string[2] - 'a') + (move_string[3] - '1') * 8;
+
+    // loop over generated moves
+    for (size_t i = 0; i < moveList.size(); i++) {
+
+        Move move = moveList[i];
+        MoveStore m(move);
+        
+        // make sure source & target squares are available within the generated move
+        if (source_square == m.getSource() && target_square == m.getTarget()) {
+            // init promoted piece
+            int promoted_piece = m.getPromoted();
+            
+            // promoted piece is available
+            if (promoted_piece) {
+                // promoted to queen
+                if (promoted_piece == Queen && move_string[4] == 'q')
+                    // return legal move
+                    return move;
+                
+                // promoted to rook
+                else if (promoted_piece == Rook && move_string[4] == 'r')
+                    // return legal move
+                    return move;
+                
+                // promoted to bishop
+                else if (promoted_piece == Bishop && move_string[4] == 'b')
+                    // return legal move
+                    return move;
+                
+                // promoted to knight
+                else if (promoted_piece == Knight && move_string[4] == 'n')
+                    // return legal move
+                    return move;
+                
+                // continue the loop on possible wrong promotions (e.g. "e7e8f")
+                continue;
+            }
+            // return legal move
+            return move;
+        }
+    }
+    return 0;
+}
+
+
+Board::Board()
+{
+    // initialize empty board
+    initTables();
+    // initialize attack tables for leaper pieces (Pawn, Knight, King)
+    initLeaperPieces();
+    // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
+    initSliderPieces();
+    side = White;
+    enpassant = no_sq;
+    castling = 0;
+}
+
 // initialization methods //
-void initTables() {
+void Board::initTables() {
     for (int piece = Pawn; piece <= King; piece++) {
         pieceBitboards[White][piece] = 0ULL;
         pieceBitboards[Black][piece] = 0ULL;
@@ -540,7 +783,7 @@ void initTables() {
     }
 }
 
-void initLeaperPieces() {
+void Board::initLeaperPieces() {
     for (int square = a1; square <= h8; square++) {
 
         // initialize pawn attacks pawnAttacks[color][square]
@@ -569,7 +812,7 @@ void initLeaperPieces() {
     }
 }
 
-void initSliderPieces() {
+void Board::initSliderPieces() {
 
     for (int square = a1; square <= h8; square++) {
         if (!bishop_masks[square]) {
@@ -614,37 +857,7 @@ void initSliderPieces() {
     }
 }
 
-// get bishop attacks
-inline Bitboard getBishopAttacks(int square, Bitboard occupancy) {
-    // get bishop attacks assuming current board occupancy
-    occupancy &= bishop_masks[square];
-    occupancy *= bishop_magic_numbers[square];
-    occupancy >>= 64 - relevantBitcountBishop[square];
-
-    // return bishop attacks
-    return bishop_attacks[square][occupancy];
-}
-
-// get rook attacks
-inline Bitboard getRookAttacks(int square, Bitboard occupancy) {
-    // get rook attacks assuming current board occupancy
-    occupancy &= rook_masks[square];
-    occupancy *= rook_magic_numbers[square];
-    occupancy >>= 64 - relevantBitcountRook[square];
-
-    // return rook attacks
-    return rook_attacks[square][occupancy];
-}
-
-inline Bitboard getQueenAttacks(int square, Bitboard occupancy) {
-
-    Bitboard diagonalAttacks = getBishopAttacks(square, occupancy);
-    Bitboard straightAttacks = getRookAttacks(square, occupancy);
-
-    return diagonalAttacks | straightAttacks;
-}
-
-void parseFEN(const std::string& fen) {
+void Board::parseFEN(const std::string& fen) {
 
     side = White;
     enpassant = no_sq;
@@ -713,7 +926,7 @@ void parseFEN(const std::string& fen) {
     occupancyBitboards[All] |= occupancyBitboards[Black];
 }
 
-bool isSquareAttacked(Square square, Color side) {
+bool Board::isSquareAttacked(Square square, Color side) {
 
     // std::cout << "Checking if square " << square << " is attacked by side " << (side == White ? "White" : "Black") << std::endl;
     // check if pawn attacks - reverse thinking -- if black pawn attack hits white pawn -- then that sqaure is attacked by white pawn
@@ -737,7 +950,7 @@ bool isSquareAttacked(Square square, Color side) {
     return false;
 }
 
-void pawnMoves(Color side, MoveList& moveList) {
+void Board::pawnMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -809,7 +1022,7 @@ void pawnMoves(Color side, MoveList& moveList) {
     }
 }
 
-void kingMoves(Color side, MoveList& moveList) {
+void Board::kingMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -885,7 +1098,7 @@ void kingMoves(Color side, MoveList& moveList) {
     }
 }
 
-void knightMoves(Color side, MoveList& moveList) {
+void Board::knightMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -913,7 +1126,7 @@ void knightMoves(Color side, MoveList& moveList) {
     }
 }
 
-void bishopMoves(Color side, MoveList& moveList) {
+void Board::bishopMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -941,7 +1154,7 @@ void bishopMoves(Color side, MoveList& moveList) {
     }
 }
 
-void rookMoves(Color side, MoveList& moveList) {
+void Board::rookMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -969,7 +1182,7 @@ void rookMoves(Color side, MoveList& moveList) {
     }
 }
 
-void queenMoves(Color side, MoveList& moveList) {
+void Board::queenMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
@@ -997,7 +1210,7 @@ void queenMoves(Color side, MoveList& moveList) {
     }
 }
 
-MoveList generateMoves() {
+MoveList Board::generateMoves() {
 
     MoveList moves;
     pawnMoves(static_cast<Color>(side), moves);
@@ -1009,7 +1222,7 @@ MoveList generateMoves() {
     return moves;
 }
 
-bool makeMove(Move move, MoveMode mode) {
+bool Board::makeMove(Move move, MoveMode mode) {
     // parse move
     MoveStore m(move);
 
@@ -1125,29 +1338,6 @@ bool makeMove(Move move, MoveMode mode) {
     }
 };
 
-MoveStore::MoveStore(Move move)
-    : source(move& FROM_SQ_MASK),
-    target((move& TO_SQ_MASK) >> 6),
-    color((move& COLOR_MASK) >> 12),
-    piece((move& PIECE_MASK) >> 13),
-    promoted((move& PROMO_MASK) >> 16),
-    capture(move& CAPTURE_FLAG),
-    doubleM(move& DOUBLE_FLAG),
-    enpassant(move& ENPASSANT_FLAG),
-    castling(move& CASTLE_FLAG)
-{}
-
-int MoveStore::getSource() const { return  source; }
-int MoveStore::getTarget() const { return target; }
-int MoveStore::getColor() const { return color; }
-int MoveStore::getPiece() const { return piece; }
-int MoveStore::getPromoted() const { return promoted; }
-
-bool MoveStore::isCapture() const { return capture; }
-bool MoveStore::isDoublePush() const { return doubleM; }
-bool MoveStore::isEnPassant() const { return enpassant; }
-bool MoveStore::isCastling() const { return castling; }
-
 // helper methods // 
 void printMove(Move move) {
     std::cout << std::left
@@ -1183,7 +1373,7 @@ void printMove(Move move) {
         << '\n';
 }
 
-void printMoves(const MoveList& moves) {
+void Board::printMoves(const MoveList& moves) {
     std::cout << std::left
         << "    "  // indent
         << std::setw(10) << "Move"
@@ -1218,7 +1408,7 @@ void printMoves(const MoveList& moves) {
     std::cout << "\nTotal number of moves: " << moves.size() << "\n\n";
 }
 
-void printAttackedSquares(Color side) {
+void Board::printAttackedSquares(Color side) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";
         for (int file = 0; file < 8; ++file) {
@@ -1231,7 +1421,7 @@ void printAttackedSquares(Color side) {
     std::cout << "    a b c d e f g h\n";
 }
 
-void printBoard() {
+void Board::printBoard() {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";
         for (int file = 0; file < 8; ++file) {
@@ -1268,26 +1458,7 @@ void printBoard() {
 
 }
 
-// Example: create a move
-Move encodeMove(int source, int target, int color, int piece, int promoted, bool capture = false,
-    bool doubleM = false, bool enpassant = false, bool castling = false) {
-
-    Move m = 0;
-    m |= source;
-    m |= (target << 6);
-    m |= (color << 12);
-    m |= (piece << 13);
-    m |= (promoted << 16);
-
-    if (capture) m |= CAPTURE_FLAG;
-    if (doubleM) m |= DOUBLE_FLAG;
-    if (enpassant) m |= ENPASSANT_FLAG;
-    if (castling) m |= CASTLE_FLAG;
-
-    return m;
-}
-
-void printBitboard(Bitboard bb) {
+void Board::printBitboard(Bitboard bb) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << "   ";
         for (int file = 0; file < 8; ++file) {
@@ -1303,7 +1474,7 @@ void printBitboard(Bitboard bb) {
     std::cout << "\nBitboard value: " << static_cast<uint64_t>(bb) << "\n\n";
 }
 
-void printPieceboards() {
+void Board::printPieceboards() {
     // print out initial boards
     for (int color = White; color <= Black; color++) {
         for (int piece = Pawn; piece <= King; piece++) {
@@ -1314,7 +1485,7 @@ void printPieceboards() {
     }
 }
 
-void printOccupancyboards() {
+void Board::printOccupancyboards() {
     for (int color = White; color <= All; color++) {
         Bitboard bitboard = occupancyBitboards[color];
         std::cout << ColorNames[color] << " " << " has occupancy bitboard: " << "\n";
@@ -1322,181 +1493,10 @@ void printOccupancyboards() {
     }
 }
 
-// MoveList (fixed-size array implementation)
-MoveList::MoveList() {
-    count = 0;
-}
-
-void MoveList::add(Move move) noexcept {
-    if (count < 256) {
-        moves[count++] = move;
-    }
-}
-
-void MoveList::clear() noexcept {
-    count = 0;
-}
-
-size_t MoveList::size() const noexcept {
-    return count;
-}
-
-bool MoveList::empty() const noexcept {
-    return count == 0;
-}
-
-Move MoveList::operator[](size_t i) const noexcept {
-    return moves[i];
-}
-
-Move& MoveList::operator[](size_t i) noexcept {
-    return moves[i];
-}
-
-// get time in milliseconds
-uint64_t get_time_ms()
-{
-    return GetTickCount64();
-}
-
-static inline uint64_t perft_driver(int depth)
-{
-    if (depth == 0)
-        return 1ULL;
-
-    uint64_t nodes = 0ULL;
- 
-    // generate moves for this board state
-    MoveList moveList = generateMoves();
-    // printBoard();
-    // printMoves(moveList);
-
-    for (size_t i = 0; i < moveList.size(); i++) {
-        Move move = moveList[i];
-        
-        saveState();
-        // makeMove mutates the board directly
-        if (!makeMove(move, MoveMode::ALL_MOVES))
-            continue;
-  
-        // recurse with mutated board
-        nodes += perft_driver(depth - 1);
-        // board is restored automatically because we pass by value
-        takeBack();
-    }
-
-    return nodes;
-}
-
-void perft_test(int depth)
-{
-    printf("\n     Performance test\n\n");
-
-    MoveList moveList = generateMoves();
-
-    uint64_t total_nodes = 0;
-
-    // init start time
-    long start = get_time_ms();
-
-    // loop over generated moves
-    for (size_t i = 0; i < moveList.size(); i++) {
-
-        Move move = moveList[i];
-        MoveStore m(move);
-
-        saveState();
-
-        // make move
-        if (!makeMove(move, MoveMode::ALL_MOVES)) {
-            takeBack();
-            continue;
-        }
-
-        // call perft driver recursively
-        uint64_t nodes = perft_driver(depth - 1);
-
-        takeBack();
-
-        total_nodes += nodes;
-
-        // print move
-        printf("     move: %s%s%s  nodes: %llu\n",
-               SquareNames[m.getSource()],
-               SquareNames[m.getTarget()],
-               m.getPromoted() ? PromotedPieces[m.getPromoted()] : " ",
-               (unsigned long long)nodes);
-    }
-
-    // print summary
-    printf("\n    Depth: %d\n", depth);
-    printf("    Nodes: %llu\n", (unsigned long long)total_nodes);
-    printf("     Time: %ld ms\n\n", get_time_ms() - start);
-}
-
-// parse user/GUI move string input (e.g. "e7e8q")
-Move parse_move(const char *move_string) {
-
-    MoveList moveList = generateMoves();
-    // parse source square
-    int source_square = (move_string[0] - 'a') + (move_string[1] - '1') * 8;
-
-    // parse target square
-    int target_square = (move_string[2] - 'a') + (move_string[3] - '1') * 8;
-
-    // loop over generated moves
-    for (size_t i = 0; i < moveList.size(); i++) {
-
-        Move move = moveList[i];
-        MoveStore m(move);
-        
-        // make sure source & target squares are available within the generated move
-        if (source_square == m.getSource() && target_square == m.getTarget()) {
-            // init promoted piece
-            int promoted_piece = m.getPromoted();
-            
-            // promoted piece is available
-            if (promoted_piece) {
-                // promoted to queen
-                if (promoted_piece == Queen && move_string[4] == 'q')
-                    // return legal move
-                    return move;
-                
-                // promoted to rook
-                else if (promoted_piece == Rook && move_string[4] == 'r')
-                    // return legal move
-                    return move;
-                
-                // promoted to bishop
-                else if (promoted_piece == Bishop && move_string[4] == 'b')
-                    // return legal move
-                    return move;
-                
-                // promoted to knight
-                else if (promoted_piece == Knight && move_string[4] == 'n')
-                    // return legal move
-                    return move;
-                
-                // continue the loop on possible wrong promotions (e.g. "e7e8f")
-                continue;
-            }
-            // return legal move
-            return move;
-        }
-    }
-    return 0;
-}
-
-
 int main()
 {   
     std::cout << "initializing tables" << std::endl;
-    // initialize piece bitboards to 0  
-    initTables();
-    // initialize attack tables for leaper pieces (Pawn, Knight, King)
-    initLeaperPieces();
-    // initialize attack tables for sliding pieces (Bishop, Rook, Queen)
-    initSliderPieces();
+    Board board;
     std::cout << "\n";
 
     // // parse fen
@@ -1519,8 +1519,8 @@ int main()
     //     // print error
     //     std::cout << "illegal move!" << std::endl;
 
-    parseFEN(start_position);
-    perft_test(6);
+    board.parseFEN(tricky_position);
+    board.perft_test(6);
     // int start = get_time_ms();
     // uint64_t nodes = perft_driver(6);
     // std::cout << "time taken to execute: " << get_time_ms() - start << std::endl;

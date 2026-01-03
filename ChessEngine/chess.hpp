@@ -133,34 +133,59 @@ Bitboard getBishopAttacks(int square, Bitboard occupancy);
 Bitboard getRookAttacks(int square, Bitboard occupancy);
 Bitboard getQueenAttacks(int square, Bitboard occupancy);
 
-// attacking methods
-bool isSquareAttacked(Square square, Color side);
-void pawnMoves(Color side, MoveList& moveList);
-void knightMoves(Color side, MoveList& moveList);
-void bishopMoves(Color side, MoveList& moveList);
-void rookMoves(Color side, MoveList& moveList);
-void queenMoves(Color side, MoveList& moveList);
-void kingMoves(Color side, MoveList& moveList);
+// Board methods
+class Board {
+public:
+    Board();
+    // initialization methods
+    void initTables();
+    void initLeaperPieces();
+    void initSliderPieces();
 
-MoveList generateMoves();
-bool makeMove(Move move, MoveMode mode);
+    // I/O methods
+    void parseFEN(const std::string& fen);
+
+    // attacking methods
+    bool isSquareAttacked(Square square, Color side);
+    void pawnMoves(Color side, MoveList& moveList);
+    void knightMoves(Color side, MoveList& moveList);
+    void bishopMoves(Color side, MoveList& moveList);
+    void rookMoves(Color side, MoveList& moveList);
+    void queenMoves(Color side, MoveList& moveList);
+    void kingMoves(Color side, MoveList& moveList);
+
+    // move methods
+    MoveList generateMoves();
+    bool makeMove(Move move, MoveMode mode);
+    Move parseMove(const char *move_string);
+
+    // debug helper methods
+    void printPieceboards();
+    void printOccupancyboards();
+    void printBitboard(Bitboard bb);
+    void printBoard();
+    void printAttackedSquares(Color side);
+    void printMoves(const MoveList& moves);
+
+    // perft
+    uint64_t perft_driver(int depth);
+    void perft_test(int depth);
+
+private:
+    Bitboard pieceBitboards[2][6]; // [color][piece]
+    Bitboard occupancyBitboards[3]; // [color]
+
+    int side;
+    int enpassant;
+    int castling;
+
+};
 
 
-// initialization methods
-void initTables();
-void initLeaperPieces();
-void initSliderPieces();
 
-// I/O methods
-void parseFEN(const std::string& fen);
 
-// debug helper methods
-void printPieceboards();
-void printOccupancyboards();
-void printBitboard(Bitboard bb);
-void printBoard();
-void printAttackedSquares(Color side);
-void printMoves(const MoveList& moves);
+
+
 
 
 //binary move bits                               hexidecimal constants
