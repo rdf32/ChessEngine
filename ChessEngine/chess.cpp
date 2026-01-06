@@ -9,9 +9,6 @@
 #include "chess.h"
 #include "logger.h"
 
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
-
 // FEN dedug positions
 constexpr auto empty_board = "8/8/8/8/8/8/8/8 w - - ";
 constexpr auto start_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ";
