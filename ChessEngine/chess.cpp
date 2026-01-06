@@ -6,8 +6,11 @@
 #include <array>
 #include <windows.h>
 
-#include "chess.hpp"
-#include "logger.hpp"
+#include "chess.h"
+#include "logger.h"
+
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 // FEN dedug positions
 constexpr auto empty_board = "8/8/8/8/8/8/8/8 w - - ";
@@ -30,7 +33,7 @@ Logger logger(Logger::Level::INFO);
 
 const char* ColorNames[3] = { "White", "Black", "All" };
 const char* PieceTypeNames[6] = { "Pawn", "Knight", "Bishop", "Rook", "Queen", "King" };
-const char* PromotedPieces[6] = { " ", "k", "b", "r", "q", " "};
+const char* PromotedPieces[6] = { " ", "k", "b", "r", "q", " " };
 const char* SquareNames[64] = {
         "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
         "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
@@ -40,11 +43,11 @@ const char* SquareNames[64] = {
         "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
         "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
         "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
-    };
+};
 
-const char* PieceSymbols[2][6] = { 
+const char* PieceSymbols[2][6] = {
     { "P", "N", "B", "R", "Q", "K" },
-    { "p", "n", "b", "r", "q", "k" } 
+    { "p", "n", "b", "r", "q", "k" }
 };
 
 const std::array<Piece, 256> symbolToPiece = [] {
@@ -68,15 +71,15 @@ const std::array<Piece, 256> symbolToPiece = [] {
     }();
 
 // Bit masks
-constexpr uint32_t FROM_SQ_MASK     = 0x00003F;      // bits 0–5
-constexpr uint32_t TO_SQ_MASK       = 0x000FC0;      // bits 6–11
-constexpr uint32_t COLOR_MASK       = 0x001000;      // bit 16
-constexpr uint32_t PIECE_MASK       = 0x00E000;      // bits 12–15
-constexpr uint32_t PROMO_MASK       = 0x0F0000;      // bits 16–19
-constexpr uint32_t CAPTURE_FLAG     = 0x100000;      // bit 20
-constexpr uint32_t DOUBLE_FLAG      = 0x200000;      // bit 21
-constexpr uint32_t ENPASSANT_FLAG   = 0x400000;      // bit 22
-constexpr uint32_t CASTLE_FLAG      = 0x800000;
+constexpr uint32_t FROM_SQ_MASK = 0x00003F;      // bits 0–5
+constexpr uint32_t TO_SQ_MASK = 0x000FC0;      // bits 6–11
+constexpr uint32_t COLOR_MASK = 0x001000;      // bit 16
+constexpr uint32_t PIECE_MASK = 0x00E000;      // bits 12–15
+constexpr uint32_t PROMO_MASK = 0x0F0000;      // bits 16–19
+constexpr uint32_t CAPTURE_FLAG = 0x100000;      // bit 20
+constexpr uint32_t DOUBLE_FLAG = 0x200000;      // bit 21
+constexpr uint32_t ENPASSANT_FLAG = 0x400000;      // bit 22
+constexpr uint32_t CASTLE_FLAG = 0x800000;
 
 // castling rights update constants
 const int castling_rights[64] = {
@@ -473,19 +476,19 @@ Bitboard dynamicBishopAttacks(Square square, Bitboard blocker) {
     int target_rank = square / 8;
     int target_file = square % 8;
 
-    for (rank = target_rank + 1, file = target_file + 1; rank <= 7 && file <= 7; rank++, file++) { 
+    for (rank = target_rank + 1, file = target_file + 1; rank <= 7 && file <= 7; rank++, file++) {
         setBit(attacks, static_cast<Square>(rank * 8 + file));
         if ((1ULL << (rank * 8 + file)) & blocker) { break; }
     }
-    for (rank = target_rank + 1, file = target_file - 1; rank <= 7 && file >= 0; rank++, file--) { 
+    for (rank = target_rank + 1, file = target_file - 1; rank <= 7 && file >= 0; rank++, file--) {
         setBit(attacks, static_cast<Square>(rank * 8 + file));
         if ((1ULL << (rank * 8 + file)) & blocker) { break; }
     }
-    for (rank = target_rank - 1, file = target_file + 1; rank >= 0 && file <= 7; rank--, file++) { 
+    for (rank = target_rank - 1, file = target_file + 1; rank >= 0 && file <= 7; rank--, file++) {
         setBit(attacks, static_cast<Square>(rank * 8 + file));
         if ((1ULL << (rank * 8 + file)) & blocker) { break; }
     }
-    for (rank = target_rank - 1, file = target_file - 1; rank >= 0 && file >= 0; rank--, file--) { 
+    for (rank = target_rank - 1, file = target_file - 1; rank >= 0 && file >= 0; rank--, file--) {
         setBit(attacks, static_cast<Square>(rank * 8 + file));
         if ((1ULL << (rank * 8 + file)) & blocker) { break; } // these could be getBits calls instead of written out
     }
@@ -501,19 +504,19 @@ Bitboard dynamicRookAttacks(Square square, Bitboard blocker) {
     int target_rank = square / 8;
     int target_file = square % 8;
 
-    for (rank = target_rank + 1; rank <= 7; rank++) { 
+    for (rank = target_rank + 1; rank <= 7; rank++) {
         setBit(attacks, static_cast<Square>(rank * 8 + target_file));
         if ((1ULL << (rank * 8 + target_file)) & blocker) { break; }
     }
-    for (rank = target_rank - 1; rank >= 0; rank--) { 
+    for (rank = target_rank - 1; rank >= 0; rank--) {
         setBit(attacks, static_cast<Square>(rank * 8 + target_file));
         if ((1ULL << (rank * 8 + target_file)) & blocker) { break; }
     }
-    for (file = target_file + 1; file <= 7; file++) { 
+    for (file = target_file + 1; file <= 7; file++) {
         setBit(attacks, static_cast<Square>(target_rank * 8 + file));
         if ((1ULL << (target_rank * 8 + file)) & blocker) { break; }
     }
-    for (file = target_file - 1; file >= 0; file--) { 
+    for (file = target_file - 1; file >= 0; file--) {
         setBit(attacks, static_cast<Square>(target_rank * 8 + file));
         if ((1ULL << (target_rank * 8 + file)) & blocker) { break; }
     }
@@ -561,7 +564,8 @@ MoveStore::MoveStore(Move move)
     doubleM(move& DOUBLE_FLAG),
     enpassant(move& ENPASSANT_FLAG),
     castling(move& CASTLE_FLAG)
-{}
+{
+}
 
 int MoveStore::getSource() const { return  source; }
 int MoveStore::getTarget() const { return target; }
@@ -636,7 +640,7 @@ uint64_t Board::perft_driver(int depth)
         return 1ULL;
 
     uint64_t nodes = 0ULL;
- 
+
     // generate moves for this board state
     MoveList moveList = generateMoves();
     // printBoard();
@@ -644,12 +648,12 @@ uint64_t Board::perft_driver(int depth)
 
     for (size_t i = 0; i < moveList.size(); i++) {
         Move move = moveList[i];
-        
+
         saveState();
         // makeMove mutates the board directly
         if (!makeMove(move, MoveMode::ALL_MOVES))
             continue;
-  
+
         // recurse with mutated board
         nodes += perft_driver(depth - 1);
         // board is restored automatically because we pass by value
@@ -692,20 +696,20 @@ void Board::perft_test(int depth)
 
         // print move
         printf("     move: %s%s%s  nodes: %llu\n",
-               SquareNames[m.getSource()],
-               SquareNames[m.getTarget()],
-               m.getPromoted() ? PromotedPieces[m.getPromoted()] : " ",
-               (unsigned long long)nodes);
+            SquareNames[m.getSource()],
+            SquareNames[m.getTarget()],
+            m.getPromoted() ? PromotedPieces[m.getPromoted()] : " ",
+            (unsigned long long)nodes);
     }
 
     // print summary
     printf("\n    Depth: %d\n", depth);
     printf("    Nodes: %llu\n", (unsigned long long)total_nodes);
-    printf("     Time: %ld ms\n\n", get_time_ms() - start);
+    printf("     Time: %lld ms\n\n", get_time_ms() - start);
 }
 
 // parse user/GUI move string input (e.g. "e7e8q")
-Move Board::parseMove(const char *move_string) {
+Move Board::parseMove(const std::string& move_string) {
 
     MoveList moveList = generateMoves();
     // parse source square
@@ -719,34 +723,34 @@ Move Board::parseMove(const char *move_string) {
 
         Move move = moveList[i];
         MoveStore m(move);
-        
+
         // make sure source & target squares are available within the generated move
         if (source_square == m.getSource() && target_square == m.getTarget()) {
             // init promoted piece
             int promoted_piece = m.getPromoted();
-            
+
             // promoted piece is available
             if (promoted_piece) {
                 // promoted to queen
                 if (promoted_piece == Queen && move_string[4] == 'q')
                     // return legal move
                     return move;
-                
+
                 // promoted to rook
                 else if (promoted_piece == Rook && move_string[4] == 'r')
                     // return legal move
                     return move;
-                
+
                 // promoted to bishop
                 else if (promoted_piece == Bishop && move_string[4] == 'b')
                     // return legal move
                     return move;
-                
+
                 // promoted to knight
                 else if (promoted_piece == Knight && move_string[4] == 'n')
                     // return legal move
                     return move;
-                
+
                 // continue the loop on possible wrong promotions (e.g. "e7e8f")
                 continue;
             }
@@ -771,6 +775,25 @@ Board::Board()
     castling = 0;
 }
 
+State Board::getState() const {
+    State state{};
+
+    // copy piece bitboards
+    for (int c = 0; c < 2; ++c)
+        for (int p = 0; p < 6; ++p)
+            state.pieces[c][p] = pieceBitboards[c][p];
+
+    // copy occupancy bitboards
+    for (int i = 0; i < 3; ++i)
+        state.occupancy[i] = occupancyBitboards[i];
+
+    state.side = side;
+    state.castling = castling;
+    state.enpassant = enpassant;
+
+    return state;
+}
+
 // initialization methods //
 void Board::initTables() {
     for (int piece = Pawn; piece <= King; piece++) {
@@ -788,11 +811,11 @@ void Board::initLeaperPieces() {
 
         // initialize pawn attacks pawnAttacks[color][square]
         int rank = square / 8;
-        if (!pawnAttacks[White][square] && rank != 7){
+        if (!pawnAttacks[White][square] && rank != 7) {
             logger.debug("init white pawn attack table for square: " + std::to_string(square) + " rank: " + std::to_string(rank));
             pawnAttacks[White][square] = maskPawnAttacks(White, static_cast<Square>(square));
         }
-        
+
         if (!pawnAttacks[Black][square] && rank != 0) {
             logger.debug("init black pawn attack table for square: " + std::to_string(square) + " rank: " + std::to_string(rank));
             pawnAttacks[Black][square] = maskPawnAttacks(Black, static_cast<Square>(square));
@@ -963,7 +986,7 @@ void Board::pawnMoves(Color side, MoveList& moveList) {
     bitboard = pieceBitboards[side][Pawn];
 
     while (bitboard) {
-        
+
         source_square = getLSBIndex(bitboard);
         target_square = source_square + square_offset;
 
@@ -977,7 +1000,7 @@ void Board::pawnMoves(Color side, MoveList& moveList) {
                 moveList.add(encodeMove(source_square, target_square, side, Pawn, Rook, false, false, false, false));
                 moveList.add(encodeMove(source_square, target_square, side, Pawn, Bishop, false, false, false, false));
                 moveList.add(encodeMove(source_square, target_square, side, Pawn, Knight, false, false, false, false));
-            } 
+            }
             else {
                 // one square ahead pawn move
                 moveList.add(encodeMove(source_square, target_square, side, Pawn, 0, false, false, false, false));
@@ -1073,7 +1096,7 @@ void Board::kingMoves(Color side, MoveList& moveList) {
         }
     }
     else {
-    
+
         if (castling & bk) {
             // make sure square between king and king's rook are empty
             if (!getBit(occupancyBitboards[All], f8) && !getBit(occupancyBitboards[All], g8))
@@ -1102,7 +1125,7 @@ void Board::knightMoves(Color side, MoveList& moveList) {
     Bitboard bitboard, attacks;
     int source_square, target_square;
 
-    bitboard = pieceBitboards[side][Knight]; 
+    bitboard = pieceBitboards[side][Knight];
 
     while (bitboard) {
 
@@ -1262,7 +1285,7 @@ bool Board::makeMove(Move move, MoveMode mode) {
             // set up promoted piece on chess board
             setBit(pieceBitboards[m.getColor()][m.getPromoted()], static_cast<Square>(m.getTarget()));
         }
-        
+
         if (m.isEnPassant()) {
             int square_offset = (m.getColor() == White) ? -8 : 8;
             clearBit(pieceBitboards[!m.getColor()][Pawn], static_cast<Square>(m.getTarget() + square_offset));
@@ -1309,7 +1332,7 @@ bool Board::makeMove(Move move, MoveMode mode) {
         // update castling rights
         castling &= castling_rights[m.getSource()];
         castling &= castling_rights[m.getTarget()];
-        
+
         // Set occupancy boards
         memset(occupancyBitboards, 0ULL, sizeof(occupancyBitboards));
         for (int color = White; color <= Black; color++) {
@@ -1319,7 +1342,7 @@ bool Board::makeMove(Move move, MoveMode mode) {
         }
         occupancyBitboards[All] |= occupancyBitboards[White];
         occupancyBitboards[All] |= occupancyBitboards[Black];
-        
+
         // std::cout << side << " made move: " << std::endl;
         // change side
         side ^= 1;
@@ -1341,14 +1364,14 @@ bool Board::makeMove(Move move, MoveMode mode) {
 // helper methods // 
 void printMove(Move move) {
     std::cout << std::left
-    << "    "  // indent
-    << std::setw(10) << "Move"
-    << std::setw(10) << "Piece"
-    << std::setw(10) << "Capture"
-    << std::setw(10) << "Double"
-    << std::setw(10) << "EnPass"
-    << std::setw(10) << "Castling"
-    << '\n';
+        << "    "  // indent
+        << std::setw(10) << "Move"
+        << std::setw(10) << "Piece"
+        << std::setw(10) << "Capture"
+        << std::setw(10) << "Double"
+        << std::setw(10) << "EnPass"
+        << std::setw(10) << "Castling"
+        << '\n';
     MoveStore m(move);
 
     // const std::string& from = SquareNames[m.getSource()];
@@ -1450,10 +1473,10 @@ void Board::printBoard() {
     std::cout << "  Enpassant:   " << (enpassant != no_sq ? SquareNames[enpassant] : "no") << std::endl;
 
     // print castling rights
-    std::cout << "  Castling:  " << 
-        (castling & wk ? 'K' : '-') << 
-        (castling & wq ? 'Q' : '-') << 
-        (castling & bk ? 'k' : '-') << 
+    std::cout << "  Castling:  " <<
+        (castling & wk ? 'K' : '-') <<
+        (castling & wq ? 'Q' : '-') <<
+        (castling & bk ? 'k' : '-') <<
         (castling & bq ? 'q' : '-') << std::endl;
 
 }
@@ -1494,7 +1517,7 @@ void Board::printOccupancyboards() {
 }
 
 int main()
-{   
+{
     std::cout << "initializing tables" << std::endl;
     Board board;
     std::cout << "\n";
@@ -1505,7 +1528,7 @@ int main()
 
     // // parse movestring
     // Move move = parse_move("d5c6");
-    
+
     // // if move is legal
     // if (move)
     // {
@@ -1513,7 +1536,7 @@ int main()
     //     makeMove(move, ALL_MOVES);
     //     printBoard();
     // }
-    
+
     // // otherwise
     // else
     //     // print error
@@ -1525,13 +1548,13 @@ int main()
     // uint64_t nodes = perft_driver(6);
     // std::cout << "time taken to execute: " << get_time_ms() - start << std::endl;
     // std::cout << "nodes: " << nodes << "\n";
-    
+
 
     // parseFEN("8/8/8/8/8/8/8/8 w KQkq e6 0 1");
     // parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1 ");
     // MoveList movesList = generateMoves();
     // printMoves(movesList);
-    
+
     // std::cout << "number of moves: " << movesList.size() << std::endl;
     // for (size_t i = 0; i < movesList.size(); i++) {
 

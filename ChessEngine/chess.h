@@ -26,7 +26,7 @@ enum PieceType : uint8_t {
     Pawn, Knight, Bishop, Rook, Queen, King
 };
 
-enum CastlingType : uint8_t{
+enum CastlingType : uint8_t {
     wk = 1, wq = 2, bk = 4, bq = 8
 };
 
@@ -40,7 +40,7 @@ struct Piece {
 struct MoveList {
     using Move = uint32_t;
 
-    Move moves[256];
+    Move moves[256] = {};
     size_t count;
 
     MoveList();
@@ -54,6 +54,7 @@ struct MoveList {
     Move operator[](size_t i) const noexcept;
     Move& operator[](size_t i) noexcept;
 };
+
 class MoveStore {
 public:
     MoveStore(Move move);
@@ -133,6 +134,15 @@ Bitboard getBishopAttacks(int square, Bitboard occupancy);
 Bitboard getRookAttacks(int square, Bitboard occupancy);
 Bitboard getQueenAttacks(int square, Bitboard occupancy);
 
+
+struct State {
+    Bitboard pieces[2][6];    // [color][piece]
+    Bitboard occupancy[3];    // [white, black, both]
+    int side;                 // side to move
+    int castling;             // castling rights bitmask
+    int enpassant;            // square or -1
+};
+
 // Board methods
 class Board {
 public:
@@ -157,7 +167,7 @@ public:
     // move methods
     MoveList generateMoves();
     bool makeMove(Move move, MoveMode mode);
-    Move parseMove(const char *move_string);
+    Move parseMove(const std::string& move_string);
 
     // debug helper methods
     void printPieceboards();
@@ -166,6 +176,9 @@ public:
     void printBoard();
     void printAttackedSquares(Color side);
     void printMoves(const MoveList& moves);
+
+    // state methods
+    State getState() const;
 
     // perft
     uint64_t perft_driver(int depth);
@@ -178,7 +191,6 @@ private:
     int side;
     int enpassant;
     int castling;
-
 };
 
 
