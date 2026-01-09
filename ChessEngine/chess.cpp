@@ -759,6 +759,30 @@ Move Board::parseMove(const std::string& move_string) {
 }
 
 
+MoveList Board::legalMoves() {
+
+    MoveList possible_moves = generateMoves();
+    //std::cout << "Possible moves: " << possible_moves.count << std::endl;
+    //for (size_t i = 0; i < possible_moves.count; i++) {
+    //    std::cout << possible_moves[i] << std::endl;
+    //}
+    MoveList legal_moves;
+    // loop over generated moves
+    for (size_t i = 0; i < possible_moves.count; i++) {
+
+        Move move = possible_moves[i];
+        bool legal = makeMove(move, ALL_MOVES);
+        if (legal) {
+            legal_moves.add(move);
+        }
+    }
+    //std::cout << "Legal moves: " << legal_moves.count << std::endl;
+    //for (size_t i = 0; i < legal_moves.count; i++) {
+    //    std::cout << legal_moves[i] << std::endl;
+    //}
+    return legal_moves;
+}
+
 Board::Board()
 {
     // initialize empty board
@@ -1539,8 +1563,14 @@ int main()
     //     // print error
     //     std::cout << "illegal move!" << std::endl;
 
-    board.parseFEN(tricky_position);
-    board.perft_test(6);
+    //board.parseFEN(tricky_position);
+    //board.perft_test(6); // 8031647685
+
+    board.parseFEN(start_position);
+    MoveList legal_moves = board.legalMoves();
+    //for (size_t i = 0; legal_moves.size(); i++) {
+    //    std::cout << legal_moves[i] << std::endl;
+    //}
     // int start = get_time_ms();
     // uint64_t nodes = perft_driver(6);
     // std::cout << "time taken to execute: " << get_time_ms() - start << std::endl;

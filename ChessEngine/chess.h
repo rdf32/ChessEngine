@@ -41,7 +41,7 @@ struct MoveList {
     using Move = uint32_t;
 
     Move moves[256] = {};
-    size_t count;
+    uint16_t count;
 
     MoveList();
 
@@ -168,6 +168,8 @@ public:
     MoveList generateMoves();
     bool makeMove(Move move, MoveMode mode);
     Move parseMove(const std::string& move_string);
+    MoveList legalMoves();
+
 
     // debug helper methods
     void printPieceboards();
