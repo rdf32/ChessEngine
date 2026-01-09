@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include "logger.hpp"
+#include "logger.h"
 
 void Logger::setLevel(Level level) {
     currentLevel = level;

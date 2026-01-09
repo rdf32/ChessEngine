@@ -26,7 +26,7 @@ enum PieceType : uint8_t {
     Pawn, Knight, Bishop, Rook, Queen, King
 };
 
-enum CastlingType : uint8_t{
+enum CastlingType : uint8_t {
     wk = 1, wq = 2, bk = 4, bq = 8
 };
 
@@ -40,8 +40,8 @@ struct Piece {
 struct MoveList {
     using Move = uint32_t;
 
-    Move moves[256];
-    size_t count;
+    Move moves[256] = {};
+    uint16_t count;
 
     MoveList();
 
@@ -54,6 +54,7 @@ struct MoveList {
     Move operator[](size_t i) const noexcept;
     Move& operator[](size_t i) noexcept;
 };
+
 class MoveStore {
 public:
     MoveStore(Move move);
@@ -133,34 +134,72 @@ Bitboard getBishopAttacks(int square, Bitboard occupancy);
 Bitboard getRookAttacks(int square, Bitboard occupancy);
 Bitboard getQueenAttacks(int square, Bitboard occupancy);
 
-// attacking methods
-bool isSquareAttacked(Square square, Color side);
-void pawnMoves(Color side, MoveList& moveList);
-void knightMoves(Color side, MoveList& moveList);
-void bishopMoves(Color side, MoveList& moveList);
-void rookMoves(Color side, MoveList& moveList);
-void queenMoves(Color side, MoveList& moveList);
-void kingMoves(Color side, MoveList& moveList);
 
-MoveList generateMoves();
-bool makeMove(Move move, MoveMode mode);
+struct State {
+    Bitboard pieces[2][6];    // [color][piece]
+    Bitboard occupancy[3];    // [white, black, both]
+    int side;                 // side to move
+    int castling;             // castling rights bitmask
+    int enpassant;            // square or -1
+};
+
+// Board methods
+class Board {
+public:
+    Board();
+    // initialization methods
+    void initTables();
+    void initLeaperPieces();
+    void initSliderPieces();
+
+    // I/O methods
+    void parseFEN(const std::string& fen);
+
+    // attacking methods
+    bool isSquareAttacked(Square square, Color side);
+    void pawnMoves(Color side, MoveList& moveList);
+    void knightMoves(Color side, MoveList& moveList);
+    void bishopMoves(Color side, MoveList& moveList);
+    void rookMoves(Color side, MoveList& moveList);
+    void queenMoves(Color side, MoveList& moveList);
+    void kingMoves(Color side, MoveList& moveList);
+
+    // move methods
+    MoveList generateMoves();
+    bool makeMove(Move move, MoveMode mode);
+    Move parseMove(const std::string& move_string);
+    MoveList legalMoves();
 
 
-// initialization methods
-void initTables();
-void initLeaperPieces();
-void initSliderPieces();
+    // debug helper methods
+    void printPieceboards();
+    void printOccupancyboards();
+    void printBitboard(Bitboard bb);
+    void printBoard();
+    void printAttackedSquares(Color side);
+    void printMoves(const MoveList& moves);
 
-// I/O methods
-void parseFEN(const std::string& fen);
+    // state methods
+    State getState() const;
 
-// debug helper methods
-void printPieceboards();
-void printOccupancyboards();
-void printBitboard(Bitboard bb);
-void printBoard();
-void printAttackedSquares(Color side);
-void printMoves(const MoveList& moves);
+    // perft
+    uint64_t perft_driver(int depth);
+    void perft_test(int depth);
+
+private:
+    Bitboard pieceBitboards[2][6]; // [color][piece]
+    Bitboard occupancyBitboards[3]; // [color]
+
+    int side;
+    int enpassant;
+    int castling;
+};
+
+
+
+
+
+
 
 
 //binary move bits                               hexidecimal constants
