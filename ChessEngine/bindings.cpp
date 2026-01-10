@@ -34,7 +34,12 @@ PYBIND11_MODULE(chess_engine, m) {
         .def("parse_fen", &Board::parseFEN, py::arg("fen"),
             "Parse a FEN string and set the board state accordingly")
         .def("legal_moves", [](Board& self) {
-        const MoveList moves = self.legalMoves();
-        return py::array_t<uint32_t>(moves.size(), moves.moves);});
+            const MoveList moves = self.legalMoves();
+            return py::array_t<uint32_t>(moves.size(), moves.moves);})
+        .def("make_move",
+            [](Board& self, Move move) {
+                return self.makeMove(move, MoveMode::ALL_MOVES);
+            },
+            py::arg("move"));
 }
 

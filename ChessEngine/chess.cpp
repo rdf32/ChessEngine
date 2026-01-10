@@ -68,15 +68,15 @@ const std::array<Piece, 256> symbolToPiece = [] {
     }();
 
 // Bit masks
-constexpr uint32_t FROM_SQ_MASK = 0x00003F;      // bits 0–5
-constexpr uint32_t TO_SQ_MASK = 0x000FC0;      // bits 6–11
-constexpr uint32_t COLOR_MASK = 0x001000;      // bit 16
-constexpr uint32_t PIECE_MASK = 0x00E000;      // bits 12–15
-constexpr uint32_t PROMO_MASK = 0x0F0000;      // bits 16–19
-constexpr uint32_t CAPTURE_FLAG = 0x100000;      // bit 20
-constexpr uint32_t DOUBLE_FLAG = 0x200000;      // bit 21
-constexpr uint32_t ENPASSANT_FLAG = 0x400000;      // bit 22
-constexpr uint32_t CASTLE_FLAG = 0x800000;
+constexpr uint32_t FROM_SQ_MASK   = 0x00003F;      
+constexpr uint32_t TO_SQ_MASK     = 0x000FC0;      
+constexpr uint32_t COLOR_MASK     = 0x001000;      
+constexpr uint32_t PIECE_MASK     = 0x00E000;      
+constexpr uint32_t PROMO_MASK     = 0x0F0000;      
+constexpr uint32_t CAPTURE_FLAG   = 0x100000;      
+constexpr uint32_t DOUBLE_FLAG    = 0x200000;      
+constexpr uint32_t ENPASSANT_FLAG = 0x400000;     
+constexpr uint32_t CASTLE_FLAG    = 0x800000;
 
 // castling rights update constants
 const int castling_rights[64] = {
@@ -771,7 +771,9 @@ MoveList Board::legalMoves() {
     for (size_t i = 0; i < possible_moves.count; i++) {
 
         Move move = possible_moves[i];
+        saveState();
         bool legal = makeMove(move, ALL_MOVES);
+        takeBack();
         if (legal) {
             legal_moves.add(move);
         }
