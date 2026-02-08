@@ -1552,23 +1552,24 @@ int main()
     std::cout << "\n";
 
     // parse fen
-    board.parseFEN("r3k2r/p11pqpb1/bn2pnp1/2pPN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1 ");
+    // board.parseFEN("r3k2r/p11pqpb1/bn2pnp1/2pPN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1 ");
+    board.parseFEN("rnb1kbnr/pppp1ppp/4p3/8/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3");
     board.printBoard();
 
-     // parse movestring
-     Move move = board.parseMove("d5c6");
+    //  // parse movestring
+    //  Move move = board.parseMove("d5c6");
 
-     // if move is legal
-     if (move)
-     {
-         // make it on board
-         board.makeMove(move, ALL_MOVES);
-         board.printBoard();
-     }
-     else {
-         // print error
-         std::cout << "illegal move!" << std::endl;
-     }
+    //  // if move is legal
+    //  if (move)
+    //  {
+    //      // make it on board
+    //      board.makeMove(move, ALL_MOVES);
+    //      board.printBoard();
+    //  }
+    //  else {
+    //      // print error
+    //      std::cout << "illegal move!" << std::endl;
+    //  }
 
 
     //board.parseFEN(tricky_position);
