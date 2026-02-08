@@ -11,10 +11,10 @@
 
 // FEN dedug positions
 constexpr auto empty_board = "8/8/8/8/8/8/8/8 w - - ";
-constexpr auto start_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ";
-constexpr auto tricky_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 ";
+constexpr auto start_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+constexpr auto tricky_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
 constexpr auto killer_position = "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1";
-constexpr auto cmk_position = "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 ";
+constexpr auto cmk_position = "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9";
 
 //Bit index : Square: bigger number left << smaller >> right
 //56 57 58 59 60 61 62 63 ->a8 to h8
@@ -91,18 +91,20 @@ const int castling_rights[64] = {
 };
 
 // preserve board state
-#define saveState()                                                        \
+#define saveState()                                                         \
     Bitboard prev_pieceBitboards[2][6], prev_occupancyBitboards[3];         \
     int prev_side, prev_enpassant, prev_castling;                           \
+    bool prev_in_check;                                                     \
     memcpy(prev_pieceBitboards, pieceBitboards, 96);                        \
     memcpy(prev_occupancyBitboards, occupancyBitboards, 24);                \
     prev_side = side, prev_enpassant = enpassant, prev_castling = castling; \
 
 // restore board state
-#define takeBack()                                                         \
+#define takeBack()                                                          \
     memcpy(pieceBitboards, prev_pieceBitboards, 96);                        \
     memcpy(occupancyBitboards, prev_occupancyBitboards, 24);                \
     side = prev_side, enpassant = prev_enpassant, castling = prev_castling; \
+
 
 // pseudo random number state
 unsigned int random_state = 1804289383;
@@ -805,7 +807,7 @@ State Board::getState() const {
     for (int c = 0; c < 2; ++c)
         for (int p = 0; p < 6; ++p)
             state.pieces[c][p] = pieceBitboards[c][p];
-
+    
     // copy occupancy bitboards
     for (int i = 0; i < 3; ++i)
         state.occupancy[i] = occupancyBitboards[i];
@@ -813,6 +815,10 @@ State Board::getState() const {
     state.side = side;
     state.castling = castling;
     state.enpassant = enpassant;
+    state.in_check = isSquareAttacked(
+        static_cast<Square>(getLSBIndex(pieceBitboards[side][King])), 
+        static_cast<Color>(!side)
+    );
 
     return state;
 }
@@ -972,7 +978,7 @@ void Board::parseFEN(const std::string& fen) {
     occupancyBitboards[All] |= occupancyBitboards[Black];
 }
 
-bool Board::isSquareAttacked(Square square, Color side) {
+bool Board::isSquareAttacked(Square square, Color side) const {
 
     // std::cout << "Checking if square " << square << " is attacked by side " << (side == White ? "White" : "Black") << std::endl;
     // check if pawn attacks - reverse thinking -- if black pawn attack hits white pawn -- then that sqaure is attacked by white pawn
@@ -1545,31 +1551,31 @@ int main()
     Board board;
     std::cout << "\n";
 
-    // // parse fen
-    // parseFEN("r3k2r/p11pqpb1/bn2pnp1/2pPN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1 ");
-    // printBoard();
+    // parse fen
+    board.parseFEN("r3k2r/p11pqpb1/bn2pnp1/2pPN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1 ");
+    board.printBoard();
 
-    // // parse movestring
-    // Move move = parse_move("d5c6");
+     // parse movestring
+     Move move = board.parseMove("d5c6");
 
-    // // if move is legal
-    // if (move)
-    // {
-    //     // make it on board
-    //     makeMove(move, ALL_MOVES);
-    //     printBoard();
-    // }
+     // if move is legal
+     if (move)
+     {
+         // make it on board
+         board.makeMove(move, ALL_MOVES);
+         board.printBoard();
+     }
+     else {
+         // print error
+         std::cout << "illegal move!" << std::endl;
+     }
 
-    // // otherwise
-    // else
-    //     // print error
-    //     std::cout << "illegal move!" << std::endl;
 
     //board.parseFEN(tricky_position);
     //board.perft_test(6); // 8031647685
 
-    board.parseFEN(start_position);
-    MoveList legal_moves = board.legalMoves();
+    //board.parseFEN(start_position);
+    //MoveList legal_moves = board.legalMoves();
     //for (size_t i = 0; legal_moves.size(); i++) {
     //    std::cout << legal_moves[i] << std::endl;
     //}

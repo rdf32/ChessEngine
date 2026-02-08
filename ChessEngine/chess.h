@@ -141,6 +141,7 @@ struct State {
     int side;                 // side to move
     int castling;             // castling rights bitmask
     int enpassant;            // square or -1
+    bool in_check;
 };
 
 // Board methods
@@ -156,7 +157,7 @@ public:
     void parseFEN(const std::string& fen);
 
     // attacking methods
-    bool isSquareAttacked(Square square, Color side);
+    bool isSquareAttacked(Square square, Color side) const;
     void pawnMoves(Color side, MoveList& moveList);
     void knightMoves(Color side, MoveList& moveList);
     void bishopMoves(Color side, MoveList& moveList);

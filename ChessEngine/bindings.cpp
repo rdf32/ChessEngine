@@ -10,6 +10,8 @@ PYBIND11_MODULE(chess_engine, m) {
         .def_readonly("side", &State::side)
         .def_readonly("castling", &State::castling)
         .def_readonly("enpassant", &State::enpassant)
+        .def_readonly("in_check", &State::in_check)
+
 
         .def_property_readonly("pieces", [](const State& s) {
         return py::array_t<uint64_t>(
